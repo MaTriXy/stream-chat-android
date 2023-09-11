@@ -52,18 +52,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import io.getstream.chat.android.client.models.Message
-import io.getstream.chat.android.client.models.User
-import io.getstream.chat.android.common.state.DeletedMessageVisibility
+import io.getstream.chat.android.client.utils.message.isDeleted
+import io.getstream.chat.android.client.utils.message.isGiphyEphemeral
+import io.getstream.chat.android.client.utils.message.isThreadStart
 import io.getstream.chat.android.compose.R
-import io.getstream.chat.android.compose.state.imagepreview.ImagePreviewResult
-import io.getstream.chat.android.compose.state.messages.list.GiphyAction
-import io.getstream.chat.android.compose.state.messages.list.MessageFocused
-import io.getstream.chat.android.compose.state.messages.list.MessageItemGroupPosition.Bottom
-import io.getstream.chat.android.compose.state.messages.list.MessageItemGroupPosition.Middle
-import io.getstream.chat.android.compose.state.messages.list.MessageItemGroupPosition.None
-import io.getstream.chat.android.compose.state.messages.list.MessageItemGroupPosition.Top
-import io.getstream.chat.android.compose.state.messages.list.MessageItemState
+import io.getstream.chat.android.compose.state.mediagallerypreview.MediaGalleryPreviewResult
 import io.getstream.chat.android.compose.state.reactionoptions.ReactionOptionItemState
 import io.getstream.chat.android.compose.ui.components.avatar.UserAvatar
 import io.getstream.chat.android.compose.ui.components.messages.MessageBubble
@@ -76,12 +69,16 @@ import io.getstream.chat.android.compose.ui.components.messages.OwnedMessageVisi
 import io.getstream.chat.android.compose.ui.components.messages.QuotedMessage
 import io.getstream.chat.android.compose.ui.components.messages.UploadingFooter
 import io.getstream.chat.android.compose.ui.theme.ChatTheme
-import io.getstream.chat.android.compose.ui.util.hasThread
-import io.getstream.chat.android.compose.ui.util.isDeleted
 import io.getstream.chat.android.compose.ui.util.isEmojiOnlyWithoutBubble
 import io.getstream.chat.android.compose.ui.util.isFailed
-import io.getstream.chat.android.compose.ui.util.isGiphyEphemeral
 import io.getstream.chat.android.compose.ui.util.isUploading
+import io.getstream.chat.android.models.Message
+import io.getstream.chat.android.models.User
+import io.getstream.chat.android.ui.common.state.messages.list.DeletedMessageVisibility
+import io.getstream.chat.android.ui.common.state.messages.list.GiphyAction
+import io.getstream.chat.android.ui.common.state.messages.list.MessageFocused
+import io.getstream.chat.android.ui.common.state.messages.list.MessageItemState
+import io.getstream.chat.android.ui.common.state.messages.list.MessagePosition
 
 /**
  * The default message container for all messages in the Conversation/Messages screen.
@@ -101,7 +98,7 @@ import io.getstream.chat.android.compose.ui.util.isUploading
  * @param onThreadClick Handler for thread clicks, if this message has a thread going.
  * @param onGiphyActionClick Handler when the user taps on an action button in a giphy message item.
  * @param onQuotedMessageClick Handler for quoted message click action.
- * @param onImagePreviewResult Handler when the user selects an option in the Image Preview screen.
+ * @param onMediaGalleryPreviewResult Handler when the user selects an option in the Media Gallery Preview screen.
  * @param leadingContent The content shown at the start of a message list item. By default, we provide
  * [DefaultMessageItemLeadingContent], which shows a user avatar if the message doesn't belong to the
  * current user.
@@ -124,21 +121,21 @@ public fun MessageItem(
     onThreadClick: (Message) -> Unit = {},
     onGiphyActionClick: (GiphyAction) -> Unit = {},
     onQuotedMessageClick: (Message) -> Unit = {},
-    onImagePreviewResult: (ImagePreviewResult?) -> Unit = {},
+    onMediaGalleryPreviewResult: (MediaGalleryPreviewResult?) -> Unit = {},
     leadingContent: @Composable RowScope.(MessageItemState) -> Unit = {
         DefaultMessageItemLeadingContent(messageItem = it)
     },
     headerContent: @Composable ColumnScope.(MessageItemState) -> Unit = {
         DefaultMessageItemHeaderContent(
             messageItem = it,
-            onReactionsClick = onReactionsClick
+            onReactionsClick = onReactionsClick,
         )
     },
     centerContent: @Composable ColumnScope.(MessageItemState) -> Unit = {
         DefaultMessageItemCenterContent(
             messageItem = it,
             onLongItemClick = onLongItemClick,
-            onImagePreviewResult = onImagePreviewResult,
+            onMediaGalleryPreviewResult = onMediaGalleryPreviewResult,
             onGiphyActionClick = onGiphyActionClick,
             onQuotedMessageClick = onQuotedMessageClick,
         )
@@ -150,7 +147,8 @@ public fun MessageItem(
         DefaultMessageItemTrailingContent(messageItem = it)
     },
 ) {
-    val (message, _, _, _, focusState) = messageItem
+    val message = messageItem.message
+    val focusState = messageItem.focusState
 
     val clickModifier = if (message.isDeleted()) {
         Modifier
@@ -158,8 +156,8 @@ public fun MessageItem(
         Modifier.combinedClickable(
             interactionSource = remember { MutableInteractionSource() },
             indication = null,
-            onClick = { if (message.hasThread()) onThreadClick(message) },
-            onLongClick = { if (!message.isUploading()) onLongItemClick(message) }
+            onClick = { if (message.isThreadStart()) onThreadClick(message) },
+            onLongClick = { if (!message.isUploading()) onLongItemClick(message) },
         )
     }
 
@@ -167,16 +165,20 @@ public fun MessageItem(
         if (focusState is MessageFocused || message.pinned) ChatTheme.colors.highlight else Color.Transparent
     val shouldAnimateBackground = !message.pinned && focusState != null
 
-    val color = if (shouldAnimateBackground) animateColorAsState(
-        targetValue = backgroundColor,
-        animationSpec = tween(
-            durationMillis = if (focusState is MessageFocused) {
-                AnimationConstants.DefaultDurationMillis
-            } else {
-                HighlightFadeOutDurationMillis
-            }
-        )
-    ).value else backgroundColor
+    val color = if (shouldAnimateBackground) {
+        animateColorAsState(
+            targetValue = backgroundColor,
+            animationSpec = tween(
+                durationMillis = if (focusState is MessageFocused) {
+                    AnimationConstants.DefaultDurationMillis
+                } else {
+                    HighlightFadeOutDurationMillis
+                },
+            ),
+        ).value
+    } else {
+        backgroundColor
+    }
 
     val messageAlignment = ChatTheme.messageAlignmentProvider.provideMessageAlignment(messageItem)
     val description = stringResource(id = R.string.stream_compose_cd_message_item)
@@ -187,14 +189,13 @@ public fun MessageItem(
             .wrapContentHeight()
             .background(color = color)
             .semantics { contentDescription = description },
-        contentAlignment = messageAlignment.itemAlignment
+        contentAlignment = messageAlignment.itemAlignment,
     ) {
         Row(
             modifier
                 .widthIn(max = 300.dp)
-                .then(clickModifier)
+                .then(clickModifier),
         ) {
-
             leadingContent(messageItem)
 
             Column(horizontalAlignment = messageAlignment.contentAlignment) {
@@ -226,17 +227,18 @@ internal fun RowScope.DefaultMessageItemLeadingContent(
         .size(24.dp)
         .align(Alignment.Bottom)
 
-    if (!messageItem.isMine && (
-        messageItem.shouldShowFooter ||
-            messageItem.groupPosition == Bottom ||
-            messageItem.groupPosition == None
-        )
+    if (!messageItem.isMine &&
+        (
+            messageItem.showMessageFooter ||
+                messageItem.groupPosition.contains(MessagePosition.BOTTOM) ||
+                messageItem.groupPosition.contains(MessagePosition.NONE)
+            )
     ) {
         UserAvatar(
             modifier = modifier,
             user = messageItem.message.user,
             textStyle = ChatTheme.typography.captionBold,
-            showOnlineIndicator = false
+            showOnlineIndicator = false,
         )
     } else {
         Spacer(modifier = modifier)
@@ -268,11 +270,13 @@ internal fun DefaultMessageItemHeaderContent(
 
         val pinnedByText = if (pinnedByUser != null) {
             stringResource(id = R.string.stream_compose_pinned_to_channel_by, pinnedByUser)
-        } else null
+        } else {
+            null
+        }
 
         MessageHeaderLabel(
             painter = painterResource(id = R.drawable.stream_compose_ic_message_pinned),
-            text = pinnedByText
+            text = pinnedByText,
         )
     }
 
@@ -285,7 +289,7 @@ internal fun DefaultMessageItemHeaderContent(
 
         MessageHeaderLabel(
             painter = painterResource(id = R.drawable.stream_compose_ic_thread),
-            text = stringResource(alsoSendToChannelTextRes)
+            text = stringResource(alsoSendToChannelTextRes),
         )
     }
 
@@ -302,7 +306,7 @@ internal fun DefaultMessageItemHeaderContent(
                 val reactionIcon = iconFactory.createReactionIcon(type)
                 ReactionOptionItemState(
                     painter = reactionIcon.getPainter(isSelected),
-                    type = type
+                    type = type,
                 )
             }
             ?.let { options ->
@@ -310,12 +314,12 @@ internal fun DefaultMessageItemHeaderContent(
                     modifier = Modifier
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
-                            indication = rememberRipple(bounded = false)
+                            indication = rememberRipple(bounded = false),
                         ) {
                             onReactionsClick(message)
                         }
                         .padding(horizontal = 4.dp, vertical = 2.dp),
-                    options = options
+                    options = options,
                 )
             }
     }
@@ -340,7 +344,7 @@ internal fun ColumnScope.DefaultMessageItemFooterContent(
         message.isUploading() -> {
             UploadingFooter(
                 modifier = Modifier.align(End),
-                message = message
+                message = message,
             )
         }
         message.isDeleted() &&
@@ -353,7 +357,8 @@ internal fun ColumnScope.DefaultMessageItemFooterContent(
     }
 
     val position = messageItem.groupPosition
-    val spacerSize = if (position == None || position == Bottom) 4.dp else 2.dp
+    val spacerSize =
+        if (position.contains(MessagePosition.NONE) || position.contains(MessagePosition.BOTTOM)) 4.dp else 2.dp
 
     Spacer(Modifier.size(spacerSize))
 }
@@ -383,7 +388,7 @@ internal fun DefaultMessageItemTrailingContent(
  * @param onLongItemClick Handler when the user selects a message, on long tap.
  * @param onGiphyActionClick Handler when the user taps on an action button in a giphy message item.
  * @param onQuotedMessageClick Handler for quoted message click action.
- * @param onImagePreviewResult Handler when the user selects an option in the Image Preview screen.
+ * @param onMediaGalleryPreviewResult Handler when the user selects an option in the Media Gallery Preview screen.
  */
 @Composable
 internal fun DefaultMessageItemCenterContent(
@@ -391,7 +396,7 @@ internal fun DefaultMessageItemCenterContent(
     onLongItemClick: (Message) -> Unit = {},
     onGiphyActionClick: (GiphyAction) -> Unit = {},
     onQuotedMessageClick: (Message) -> Unit = {},
-    onImagePreviewResult: (ImagePreviewResult?) -> Unit = {},
+    onMediaGalleryPreviewResult: (MediaGalleryPreviewResult?) -> Unit = {},
 ) {
     val modifier = Modifier.widthIn(max = ChatTheme.dimens.messageItemMaxWidth)
     if (messageItem.message.isEmojiOnlyWithoutBubble()) {
@@ -400,8 +405,8 @@ internal fun DefaultMessageItemCenterContent(
             messageItem = messageItem,
             onLongItemClick = onLongItemClick,
             onGiphyActionClick = onGiphyActionClick,
-            onImagePreviewResult = onImagePreviewResult,
-            onQuotedMessageClick = onQuotedMessageClick
+            onMediaGalleryPreviewResult = onMediaGalleryPreviewResult,
+            onQuotedMessageClick = onQuotedMessageClick,
         )
     } else {
         RegularMessageContent(
@@ -409,8 +414,8 @@ internal fun DefaultMessageItemCenterContent(
             messageItem = messageItem,
             onLongItemClick = onLongItemClick,
             onGiphyActionClick = onGiphyActionClick,
-            onImagePreviewResult = onImagePreviewResult,
-            onQuotedMessageClick = onQuotedMessageClick
+            onMediaGalleryPreviewResult = onMediaGalleryPreviewResult,
+            onQuotedMessageClick = onQuotedMessageClick,
         )
     }
 }
@@ -423,7 +428,7 @@ internal fun DefaultMessageItemCenterContent(
  * @param onLongItemClick Handler when the user selects a message, on long tap.
  * @param onGiphyActionClick Handler when the user taps on an action button in a giphy message item.
  * @param onQuotedMessageClick Handler for quoted message click action.
- * @param onImagePreviewResult Handler when the user selects an option in the Image Preview screen.
+ * @param onMediaGalleryPreviewResult Handler used when the user selects an option in the Media Gallery Preview screen.
  */
 @Composable
 internal fun EmojiMessageContent(
@@ -432,7 +437,7 @@ internal fun EmojiMessageContent(
     onLongItemClick: (Message) -> Unit = {},
     onGiphyActionClick: (GiphyAction) -> Unit = {},
     onQuotedMessageClick: (Message) -> Unit = {},
-    onImagePreviewResult: (ImagePreviewResult?) -> Unit = {},
+    onMediaGalleryPreviewResult: (MediaGalleryPreviewResult?) -> Unit = {},
 ) {
     val message = messageItem.message
 
@@ -442,8 +447,8 @@ internal fun EmojiMessageContent(
             currentUser = messageItem.currentUser,
             onLongItemClick = onLongItemClick,
             onGiphyActionClick = onGiphyActionClick,
-            onImagePreviewResult = onImagePreviewResult,
-            onQuotedMessageClick = onQuotedMessageClick
+            onMediaGalleryPreviewResult = onMediaGalleryPreviewResult,
+            onQuotedMessageClick = onQuotedMessageClick,
         )
     } else {
         Box(modifier = modifier) {
@@ -452,8 +457,8 @@ internal fun EmojiMessageContent(
                 currentUser = messageItem.currentUser,
                 onLongItemClick = onLongItemClick,
                 onGiphyActionClick = onGiphyActionClick,
-                onImagePreviewResult = onImagePreviewResult,
-                onQuotedMessageClick = onQuotedMessageClick
+                onMediaGalleryPreviewResult = onMediaGalleryPreviewResult,
+                onQuotedMessageClick = onQuotedMessageClick,
             )
 
             Icon(
@@ -462,7 +467,7 @@ internal fun EmojiMessageContent(
                     .align(BottomEnd),
                 painter = painterResource(id = R.drawable.stream_compose_ic_error),
                 contentDescription = null,
-                tint = ChatTheme.colors.errorAccent
+                tint = ChatTheme.colors.errorAccent,
             )
         }
     }
@@ -476,7 +481,7 @@ internal fun EmojiMessageContent(
  * @param onLongItemClick Handler when the user selects a message, on long tap.
  * @param onGiphyActionClick Handler when the user taps on an action button in a giphy message item.
  * @param onQuotedMessageClick Handler for quoted message click action.
- * @param onImagePreviewResult Handler when the user selects an option in the Image Preview screen.
+ * @param onMediaGalleryPreviewResult Handler when the user selects an option in the Media Gallery Preview screen.
  */
 @Composable
 internal fun RegularMessageContent(
@@ -485,12 +490,14 @@ internal fun RegularMessageContent(
     onLongItemClick: (Message) -> Unit = {},
     onGiphyActionClick: (GiphyAction) -> Unit = {},
     onQuotedMessageClick: (Message) -> Unit = {},
-    onImagePreviewResult: (ImagePreviewResult?) -> Unit = {},
+    onMediaGalleryPreviewResult: (MediaGalleryPreviewResult?) -> Unit = {},
 ) {
-    val (message, position, _, ownsMessage, _) = messageItem
+    val message = messageItem.message
+    val position = messageItem.groupPosition
+    val ownsMessage = messageItem.isMine
 
-    val messageBubbleShape = when (position) {
-        Top, Middle -> RoundedCornerShape(16.dp)
+    val messageBubbleShape = when {
+        position.contains(MessagePosition.TOP) || position.contains(MessagePosition.MIDDLE) -> RoundedCornerShape(16.dp)
         else -> {
             if (ownsMessage) ChatTheme.shapes.myMessageBubble else ChatTheme.shapes.otherMessageBubble
         }
@@ -498,9 +505,14 @@ internal fun RegularMessageContent(
 
     val messageBubbleColor = when {
         message.isGiphyEphemeral() -> ChatTheme.colors.giphyMessageBackground
-        message.isDeleted() -> ChatTheme.colors.deletedMessagesBackground
-        ownsMessage -> ChatTheme.colors.ownMessagesBackground
-        else -> ChatTheme.colors.otherMessagesBackground
+        message.isDeleted() -> when (ownsMessage) {
+            true -> ChatTheme.ownMessageTheme.deletedBackgroundColor
+            else -> ChatTheme.otherMessageTheme.deletedBackgroundColor
+        }
+        else -> when (ownsMessage) {
+            true -> ChatTheme.ownMessageTheme.backgroundColor
+            else -> ChatTheme.otherMessageTheme.backgroundColor
+        }
     }
 
     if (!messageItem.isFailed()) {
@@ -515,10 +527,10 @@ internal fun RegularMessageContent(
                     currentUser = messageItem.currentUser,
                     onLongItemClick = onLongItemClick,
                     onGiphyActionClick = onGiphyActionClick,
-                    onImagePreviewResult = onImagePreviewResult,
-                    onQuotedMessageClick = onQuotedMessageClick
+                    onMediaGalleryPreviewResult = onMediaGalleryPreviewResult,
+                    onQuotedMessageClick = onQuotedMessageClick,
                 )
-            }
+            },
         )
     } else {
         Box(modifier = modifier) {
@@ -532,10 +544,10 @@ internal fun RegularMessageContent(
                         currentUser = messageItem.currentUser,
                         onLongItemClick = onLongItemClick,
                         onGiphyActionClick = onGiphyActionClick,
-                        onImagePreviewResult = onImagePreviewResult,
-                        onQuotedMessageClick = onQuotedMessageClick
+                        onMediaGalleryPreviewResult = onMediaGalleryPreviewResult,
+                        onQuotedMessageClick = onQuotedMessageClick,
                     )
-                }
+                },
             )
 
             Icon(
@@ -544,7 +556,7 @@ internal fun RegularMessageContent(
                     .align(BottomEnd),
                 painter = painterResource(id = R.drawable.stream_compose_ic_error),
                 contentDescription = null,
-                tint = ChatTheme.colors.errorAccent
+                tint = ChatTheme.colors.errorAccent,
             )
         }
     }
@@ -574,13 +586,13 @@ internal fun DefaultMessageTextContent(
                 currentUser = currentUser,
                 replyMessage = message,
                 onLongItemClick = { onLongItemClick(message) },
-                onQuotedMessageClick = onQuotedMessageClick
+                onQuotedMessageClick = onQuotedMessageClick,
             )
         }
         MessageText(
             message = message,
             currentUser = currentUser,
-            onLongItemClick = onLongItemClick
+            onLongItemClick = onLongItemClick,
         )
     }
 }

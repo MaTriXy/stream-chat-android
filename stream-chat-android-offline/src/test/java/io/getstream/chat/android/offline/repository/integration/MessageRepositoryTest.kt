@@ -18,10 +18,10 @@ package io.getstream.chat.android.offline.repository.integration
 
 import android.database.sqlite.SQLiteException
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import io.getstream.chat.android.client.test.randomAttachment
-import io.getstream.chat.android.client.test.randomMessage
 import io.getstream.chat.android.offline.integration.BaseDomainTest2
-import io.getstream.chat.android.test.randomString
+import io.getstream.chat.android.randomAttachment
+import io.getstream.chat.android.randomMessage
+import io.getstream.chat.android.randomString
 import kotlinx.coroutines.test.runTest
 import org.amshove.kluent.coInvoking
 import org.amshove.kluent.`should be equal to`
@@ -35,17 +35,20 @@ internal class MessageRepositoryTest : BaseDomainTest2() {
     @Test
     fun `Given message with 3 attachments When update it in DB Should keep only 3 newer attachments`(): Unit =
         runTest {
-            val attachment1 = randomAttachment { url = "url1" }
-            val attachment2 = randomAttachment { url = "url2" }
-            val attachment3 = randomAttachment { url = "url3" }
+            val attachment1 = randomAttachment(url = "url1")
+            val attachment2 = randomAttachment(url = "url2")
+            val attachment3 = randomAttachment(url = "url3")
             val message = randomMessage(attachments = mutableListOf(attachment1, attachment2, attachment3))
             repos.insertMessage(message)
 
             val newAttachment1 = attachment1.copy(url = "newUrl1")
             val newAttachment2 = attachment2.copy(url = "newUrl2")
             val newAttachment3 = attachment3.copy(url = "newUrl3")
-            message.attachments = mutableListOf(newAttachment1, newAttachment2, newAttachment3)
-            repos.insertMessage(message)
+            repos.insertMessage(
+                message.copy(
+                    attachments = mutableListOf(newAttachment1, newAttachment2, newAttachment3),
+                ),
+            )
 
             val messageFromDb = requireNotNull(repos.selectMessage(message.id))
 

@@ -43,13 +43,13 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import io.getstream.chat.android.client.models.Attachment
 import io.getstream.chat.android.compose.R
 import io.getstream.chat.android.compose.state.messages.attachments.AttachmentsPickerMode
 import io.getstream.chat.android.compose.ui.messages.attachments.factory.AttachmentsPickerTabFactory
 import io.getstream.chat.android.compose.ui.theme.ChatTheme
 import io.getstream.chat.android.compose.ui.util.mirrorRtl
 import io.getstream.chat.android.compose.viewmodel.messages.AttachmentsPickerViewModel
+import io.getstream.chat.android.models.Attachment
 
 /**
  * Represents the bottom bar UI that allows users to pick attachments. The picker renders its
@@ -82,14 +82,14 @@ public fun AttachmentsPicker(
             .clickable(
                 onClick = onDismiss,
                 indication = null,
-                interactionSource = remember { MutableInteractionSource() }
-            )
+                interactionSource = remember { MutableInteractionSource() },
+            ),
     ) {
         Card(
             modifier = modifier.clickable(
                 indication = null,
                 onClick = {},
-                interactionSource = remember { MutableInteractionSource() }
+                interactionSource = remember { MutableInteractionSource() },
             ),
             elevation = 4.dp,
             shape = shape,
@@ -115,7 +115,7 @@ public fun AttachmentsPicker(
                     color = ChatTheme.colors.barsBackground,
                 ) {
                     tabFactories.getOrNull(selectedTabIndex)
-                        ?.pickerTabContent(
+                        ?.PickerTabContent(
                             attachments = attachmentsPickerViewModel.attachments,
                             onAttachmentItemSelected = attachmentsPickerViewModel::changeSelectedAttachments,
                             onAttachmentsChanged = { attachmentsPickerViewModel.attachments = it },
@@ -149,7 +149,7 @@ private fun AttachmentPickerOptions(
 ) {
     Row(
         Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Row(horizontalArrangement = Arrangement.SpaceEvenly) {
             tabFactories.forEachIndexed { index, tabFactory ->
@@ -160,12 +160,12 @@ private fun AttachmentPickerOptions(
                 IconButton(
                     enabled = isEnabled,
                     content = {
-                        tabFactory.pickerTabIcon(
+                        tabFactory.PickerTabIcon(
                             isEnabled = isEnabled,
-                            isSelected = isSelected
+                            isSelected = isSelected,
                         )
                     },
-                    onClick = { onTabClick(index, tabFactory.attachmentsPickerMode) }
+                    onClick = { onTabClick(index, tabFactory.attachmentsPickerMode) },
                 )
             }
         }
@@ -188,9 +188,9 @@ private fun AttachmentPickerOptions(
                         ChatTheme.colors.primaryAccent
                     } else {
                         ChatTheme.colors.textLowEmphasis
-                    }
+                    },
                 )
-            }
+            },
         )
     }
 }

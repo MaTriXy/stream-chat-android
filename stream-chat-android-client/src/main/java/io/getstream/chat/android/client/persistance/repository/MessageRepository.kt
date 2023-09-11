@@ -16,9 +16,9 @@
 
 package io.getstream.chat.android.client.persistance.repository
 
-import io.getstream.chat.android.client.models.Message
 import io.getstream.chat.android.client.query.pagination.AnyChannelPaginationRequest
-import io.getstream.chat.android.client.utils.SyncStatus
+import io.getstream.chat.android.models.Message
+import io.getstream.chat.android.models.SyncStatus
 import java.util.Date
 
 /**
@@ -49,6 +49,14 @@ public interface MessageRepository {
         messageId: String,
         limit: Int,
     ): List<Message>
+
+    /**
+     * Selects a message based on its id, but the message must be a quoted message. This method should be used to
+     * populate the Message.replyTo.
+     *
+     * @param messageId String.
+     */
+    public suspend fun selectRepliedMessage(messageId: String): Message?
 
     /**
      * Selects messages by IDs.

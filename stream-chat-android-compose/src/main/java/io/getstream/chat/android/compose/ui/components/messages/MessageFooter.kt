@@ -27,10 +27,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.getstream.chat.android.compose.R
 import io.getstream.chat.android.compose.state.DateFormatType
-import io.getstream.chat.android.compose.state.messages.list.MessageItemState
 import io.getstream.chat.android.compose.ui.components.Timestamp
 import io.getstream.chat.android.compose.ui.components.channels.MessageReadStatusIcon
 import io.getstream.chat.android.compose.ui.theme.ChatTheme
+import io.getstream.chat.android.ui.common.state.messages.list.MessageItemState
 
 /**
  * Default message footer, which contains either [MessageThreadFooter] or the default footer, which
@@ -54,15 +54,15 @@ public fun MessageFooter(
             text = LocalContext.current.resources.getQuantityString(
                 R.plurals.stream_compose_message_list_thread_footnote,
                 replyCount,
-                replyCount
-            )
+                replyCount,
+            ),
         )
     }
 
-    if (messageItem.shouldShowFooter) {
+    if (messageItem.showMessageFooter) {
         Row(
             modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             if (!messageItem.isMine) {
                 Text(
@@ -73,13 +73,14 @@ public fun MessageFooter(
                     style = ChatTheme.typography.footnote,
                     overflow = TextOverflow.Ellipsis,
                     maxLines = 1,
-                    color = ChatTheme.colors.textLowEmphasis
+                    color = ChatTheme.colors.textLowEmphasis,
                 )
             } else {
                 MessageReadStatusIcon(
                     modifier = Modifier.padding(end = 4.dp),
                     message = messageItem.message,
-                    isMessageRead = messageItem.isMessageRead
+                    isMessageRead = messageItem.isMessageRead,
+                    readCount = messageItem.messageReadBy.size,
                 )
             }
 

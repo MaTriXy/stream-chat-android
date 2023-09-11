@@ -24,14 +24,15 @@ import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
 import io.getstream.chat.android.client.ChatClient
 import io.getstream.chat.android.client.channel.ChannelClient
-import io.getstream.chat.android.client.models.ChannelMute
-import io.getstream.chat.android.client.models.Member
-import io.getstream.chat.android.client.models.Message
-import io.getstream.chat.android.client.models.User
+import io.getstream.chat.android.client.channel.state.ChannelState
 import io.getstream.chat.android.client.setup.state.ClientState
-import io.getstream.chat.android.livedata.utils.Event
-import io.getstream.chat.android.offline.extensions.watchChannelAsState
-import io.getstream.chat.android.offline.plugin.state.channel.ChannelState
+import io.getstream.chat.android.models.ChannelMute
+import io.getstream.chat.android.models.Member
+import io.getstream.chat.android.models.Message
+import io.getstream.chat.android.models.User
+import io.getstream.chat.android.state.extensions.watchChannelAsState
+import io.getstream.chat.android.state.utils.Event
+import io.getstream.result.Result
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
@@ -47,7 +48,7 @@ class GroupChatInfoViewModel(
      * Holds information about the current channel and is actively updated.
      */
     private val channelState: Flow<ChannelState> =
-        chatClient.watchChannelAsState(cid, DEFAULT_MESSAGE_LIMIT, viewModelScope).filterNotNull()
+        chatClient.watchChannelAsState(cid, 0, viewModelScope).filterNotNull()
 
     private val channelClient: ChannelClient = chatClient.channel(cid)
     private val _state = MediatorLiveData<State>()
@@ -96,7 +97,7 @@ class GroupChatInfoViewModel(
     private fun changeGroupName(name: String) {
         viewModelScope.launch {
             val result = channelClient.update(message = null, mapOf("name" to name)).await()
-            if (result.isError) {
+            if (result is Result.Failure) {
                 _errorEvents.postValue(Event(ErrorEvent.ChangeGroupNameError))
             }
         }
@@ -104,16 +105,16 @@ class GroupChatInfoViewModel(
 
     private fun leaveChannel() {
         viewModelScope.launch {
-            val result = chatClient.getCurrentUser()?.let { user ->
+            val result = clientState.user.value?.let { user ->
                 val message = Message(text = "${user.name} left")
                 chatClient.channel(channelClient.channelType, channelClient.channelId)
                     .removeMembers(listOf(user.id), message)
                     .await()
-            }
-            if (result?.isSuccess == true) {
-                _events.value = Event(UiEvent.RedirectToHome)
-            } else {
-                _errorEvents.postValue(Event(ErrorEvent.LeaveChannelError))
+            } ?: return@launch
+
+            when (result) {
+                is Result.Success -> _events.value = Event(UiEvent.RedirectToHome)
+                is Result.Failure -> _errorEvents.postValue(Event(ErrorEvent.LeaveChannelError))
             }
         }
     }
@@ -124,7 +125,7 @@ class GroupChatInfoViewModel(
             currentState.copy(
                 members = members,
                 shouldExpandMembers = currentState.shouldExpandMembers ?: false || members.size <= COLLAPSED_MEMBERS_COUNT,
-                membersToShowCount = members.size - COLLAPSED_MEMBERS_COUNT
+                membersToShowCount = members.size - COLLAPSED_MEMBERS_COUNT,
             )
     }
 
@@ -139,7 +140,7 @@ class GroupChatInfoViewModel(
             } else {
                 channelClient.unmute().await()
             }
-            if (result.isError) {
+            if (result is Result.Failure) {
                 _errorEvents.postValue(Event(ErrorEvent.MuteChannelError))
             }
         }
@@ -187,10 +188,5 @@ class GroupChatInfoViewModel(
             membersToShowCount = 0,
             emptySet(),
         )
-
-        /**
-         * The default limit for messages count in requests.
-         */
-        private const val DEFAULT_MESSAGE_LIMIT: Int = 30
     }
 }

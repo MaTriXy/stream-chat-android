@@ -49,16 +49,17 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
         freeCompilerArgs += [
                 '-progressive',
                 '-Xexplicit-api=strict',
-                '-Xopt-in=kotlin.RequiresOptIn',
-                '-Xopt-in=io.getstream.chat.android.core.internal.InternalStreamChatApi',
+                '-opt-in=kotlin.RequiresOptIn',
+                '-opt-in=io.getstream.chat.android.core.internal.InternalStreamChatApi',
         ]
+        jvmTarget = JavaVersion.VERSION_11.toString()
     }
 }
 
 dependencies {
     api project(":stream-chat-android-client")
-    api project(":stream-chat-android-state")
 
+    implementation Dependencies.streamLog
     // Kotlin
     implementation Dependencies.kotlinReflect
     implementation Dependencies.coroutinesCore
@@ -81,6 +82,8 @@ dependencies {
     // Tests
     testImplementation project(":stream-chat-android-test")
     testImplementation project(":stream-chat-android-client-test")
+    testImplementation testFixtures(project(":stream-chat-android-core"))
+    testImplementation Dependencies.streamResult
     testImplementation Dependencies.moshiKotlin
 
     testImplementation Dependencies.junitJupiterApi
@@ -99,7 +102,6 @@ dependencies {
 
     testImplementation Dependencies.robolectric
 
-    testImplementation Dependencies.kfixture
     testImplementation Dependencies.kluent
     testImplementation Dependencies.mockito
     testImplementation Dependencies.mockitoKotlin

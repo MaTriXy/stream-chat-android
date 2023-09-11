@@ -47,11 +47,24 @@ import io.getstream.chat.android.compose.R
  * @param threadSeparatorGradientEnd Used as an end color for vertical gradient background in a thread separator.
  * @param ownMessageText Used for message text color for the current user. [textHighEmphasis] by default.
  * @param otherMessageText Used for message text color for other users. [textHighEmphasis] by default.
+ * @param imageBackgroundMessageList Used to set the background colour of images inside the message list.
+ * Most visible in placeholders before the images are loaded.
+ * @param imageBackgroundMediaGalleryPicker Used to set the background colour of images inside the media gallery picker
+ * in the media gallery preview screen. Most visible in placeholders before the images are loaded.
+ * @param imageBackgroundMessageList Used to set the background colour of videos inside the message list.
+ * Most visible in placeholders before the video previews are loaded.
+ * @param imageBackgroundMediaGalleryPicker Used to set the background colour of videos inside the media gallery picker
+ * in the media gallery preview screen. Most visible in placeholders before the videos previews are loaded.
+ * @param showMoreOverlay The color of the overlay displaying how many more media attachments the message contains,
+ * given it contains more than can be displayed in the message list media attachment preview.
+ * @param showMoreCountText The color of the text displaying how many more media attachments the message contains,
+ * given it contains more than can be displayed in the message list media attachment preview.
  * @param ownMessageQuotedBackground Changes the background color of the quoted message contained in a reply sent by the current user.
  * @param otherMessageQuotedBackground Changes the background color of the quoted message contained in a reply sent by other users.
  * @param ownMessageQuotedText Changes the text color of the quoted message contained in a reply sent by the current user. [textHighEmphasis] by default.
  * @param otherMessageQuotedText Changes the text color of the quoted message contained in a reply sent by other users. [textHighEmphasis] by default.
  */
+@Suppress("DEPRECATION_ERROR")
 @Immutable
 public data class StreamColors(
     public val textHighEmphasis: Color,
@@ -68,17 +81,32 @@ public data class StreamColors(
     public val errorAccent: Color,
     public val infoAccent: Color,
     public val highlight: Color,
+    @Deprecated("Use MessageTheme.backgroundColor instead", level = DeprecationLevel.ERROR)
     public val ownMessagesBackground: Color,
+    @Deprecated("Use MessageTheme.backgroundColor instead", level = DeprecationLevel.ERROR)
     public val otherMessagesBackground: Color,
+    @Deprecated("Use MessageTheme.deletedBackgroundColor instead", level = DeprecationLevel.ERROR)
     public val deletedMessagesBackground: Color,
     public val giphyMessageBackground: Color,
     public val threadSeparatorGradientStart: Color,
     public val threadSeparatorGradientEnd: Color,
+    @Deprecated("Use MessageTheme.textStyle.color instead", level = DeprecationLevel.ERROR)
     public val ownMessageText: Color = textHighEmphasis,
+    @Deprecated("Use MessageTheme.textStyle.color instead", level = DeprecationLevel.ERROR)
     public val otherMessageText: Color = textHighEmphasis,
+    public val imageBackgroundMessageList: Color,
+    public val imageBackgroundMediaGalleryPicker: Color,
+    public val videoBackgroundMessageList: Color,
+    public val videoBackgroundMediaGalleryPicker: Color,
+    public val showMoreOverlay: Color,
+    public val showMoreCountText: Color,
+    @Deprecated("Use MessageTheme.quotedBackgroundColor instead", level = DeprecationLevel.ERROR)
     public val ownMessageQuotedBackground: Color = otherMessagesBackground,
+    @Deprecated("Use MessageTheme.quotedBackgroundColor instead", level = DeprecationLevel.ERROR)
     public val otherMessageQuotedBackground: Color = ownMessagesBackground,
+    @Deprecated("Use MessageTheme.quotedTextStyle.color instead", level = DeprecationLevel.ERROR)
     public val ownMessageQuotedText: Color = textHighEmphasis,
+    @Deprecated("Use MessageTheme.quotedTextStyle.color instead", level = DeprecationLevel.ERROR)
     public val otherMessageQuotedText: Color = textHighEmphasis,
 ) {
 
@@ -111,7 +139,13 @@ public data class StreamColors(
             threadSeparatorGradientStart = colorResource(R.color.stream_compose_input_background),
             threadSeparatorGradientEnd = colorResource(R.color.stream_compose_app_background),
             ownMessageText = colorResource(R.color.stream_compose_text_high_emphasis),
-            otherMessageText = colorResource(R.color.stream_compose_text_high_emphasis)
+            otherMessageText = colorResource(R.color.stream_compose_text_high_emphasis),
+            imageBackgroundMessageList = colorResource(R.color.stream_compose_input_background),
+            imageBackgroundMediaGalleryPicker = colorResource(R.color.stream_compose_app_background),
+            videoBackgroundMessageList = colorResource(R.color.stream_compose_input_background),
+            videoBackgroundMediaGalleryPicker = colorResource(R.color.stream_compose_app_background),
+            showMoreOverlay = colorResource(R.color.stream_compose_show_more_overlay),
+            showMoreCountText = colorResource(R.color.stream_compose_show_more_text),
         )
 
         /**
@@ -142,7 +176,13 @@ public data class StreamColors(
             threadSeparatorGradientStart = colorResource(R.color.stream_compose_input_background_dark),
             threadSeparatorGradientEnd = colorResource(R.color.stream_compose_app_background_dark),
             ownMessageText = colorResource(R.color.stream_compose_text_high_emphasis_dark),
-            otherMessageText = colorResource(R.color.stream_compose_text_high_emphasis_dark)
+            otherMessageText = colorResource(R.color.stream_compose_text_high_emphasis_dark),
+            imageBackgroundMessageList = colorResource(R.color.stream_compose_input_background_dark),
+            imageBackgroundMediaGalleryPicker = colorResource(R.color.stream_compose_app_background_dark),
+            videoBackgroundMessageList = colorResource(R.color.stream_compose_input_background_dark),
+            videoBackgroundMediaGalleryPicker = colorResource(R.color.stream_compose_app_background_dark),
+            showMoreOverlay = colorResource(R.color.stream_compose_show_more_overlay_dark),
+            showMoreCountText = colorResource(R.color.stream_compose_show_more_text_dark),
         )
     }
 }

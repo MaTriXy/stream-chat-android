@@ -17,22 +17,26 @@
 package io.getstream.chat.android.compose.viewmodel.messages
 
 import io.getstream.chat.android.client.ChatClient
-import io.getstream.chat.android.client.models.Channel
-import io.getstream.chat.android.client.models.Config
-import io.getstream.chat.android.client.models.Message
-import io.getstream.chat.android.client.models.Reaction
-import io.getstream.chat.android.client.models.TypingEvent
-import io.getstream.chat.android.client.models.User
+import io.getstream.chat.android.client.channel.state.ChannelState
 import io.getstream.chat.android.client.setup.state.ClientState
-import io.getstream.chat.android.common.state.React
-import io.getstream.chat.android.compose.state.messages.list.MessageItemState
-import io.getstream.chat.android.offline.model.channel.ChannelData
-import io.getstream.chat.android.offline.plugin.state.StateRegistry
-import io.getstream.chat.android.offline.plugin.state.channel.ChannelState
-import io.getstream.chat.android.offline.plugin.state.channel.MessagesState
-import io.getstream.chat.android.offline.plugin.state.global.internal.GlobalMutableState
+import io.getstream.chat.android.models.Channel
+import io.getstream.chat.android.models.ChannelData
+import io.getstream.chat.android.models.Config
+import io.getstream.chat.android.models.InitializationState
+import io.getstream.chat.android.models.Message
+import io.getstream.chat.android.models.MessagesState
+import io.getstream.chat.android.models.Reaction
+import io.getstream.chat.android.models.TypingEvent
+import io.getstream.chat.android.models.User
+import io.getstream.chat.android.state.plugin.config.StatePluginConfig
+import io.getstream.chat.android.state.plugin.internal.StatePlugin
+import io.getstream.chat.android.state.plugin.state.StateRegistry
+import io.getstream.chat.android.state.plugin.state.global.GlobalState
 import io.getstream.chat.android.test.TestCoroutineExtension
 import io.getstream.chat.android.test.asCall
+import io.getstream.chat.android.ui.common.feature.messages.list.MessageListController
+import io.getstream.chat.android.ui.common.state.messages.React
+import io.getstream.chat.android.ui.common.state.messages.list.MessageItemState
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
@@ -58,7 +62,6 @@ internal class MessageListViewModelTest {
             .givenCurrentUser()
             .givenChannelQuery()
             .givenChannelState(messageState = messageState)
-            .givenNotifications()
             .get()
 
         // Avoid counting date separators
@@ -75,7 +78,6 @@ internal class MessageListViewModelTest {
             .givenCurrentUser()
             .givenChannelQuery()
             .givenChannelState(messageState = messageState)
-            .givenNotifications()
             .get()
 
         viewModel.selectMessage(message1)
@@ -94,7 +96,6 @@ internal class MessageListViewModelTest {
             .givenCurrentUser()
             .givenChannelQuery()
             .givenChannelState(messageState = messageState)
-            .givenNotifications()
             .givenSendReaction()
             .get()
 
@@ -112,29 +113,28 @@ internal class MessageListViewModelTest {
     private class Fixture(
         private val chatClient: ChatClient = mock(),
         private val channelId: String = CID,
+        statePluginConfig: StatePluginConfig = StatePluginConfig(),
     ) {
-        private val globalState: GlobalMutableState = mock()
         private val clientState: ClientState = mock()
         private val stateRegistry: StateRegistry = mock()
+        private val globalState: GlobalState = mock()
 
         init {
-            StateRegistry.instance = stateRegistry
-            GlobalMutableState.instance = globalState
-
+            val statePlugin: StatePlugin = mock()
+            whenever(statePlugin.resolveDependency(eq(StateRegistry::class))) doReturn stateRegistry
+            whenever(statePlugin.resolveDependency(eq(GlobalState::class))) doReturn globalState
+            whenever(statePlugin.resolveDependency(eq(StatePluginConfig::class))) doReturn statePluginConfig
+            whenever(chatClient.plugins) doReturn listOf(statePlugin)
             whenever(chatClient.clientState) doReturn clientState
         }
 
         fun givenCurrentUser(currentUser: User = user1) = apply {
             whenever(clientState.user) doReturn MutableStateFlow(currentUser)
+            whenever(clientState.initializationState) doReturn MutableStateFlow(InitializationState.COMPLETE)
         }
 
         fun givenChannelQuery(channel: Channel = Channel()) = apply {
-            whenever(chatClient.queryChannel(any(), any(), any())) doReturn channel.asCall()
-            whenever(chatClient.queryChannelInternal(any(), any(), any())) doReturn channel.asCall()
-        }
-
-        fun givenNotifications() = apply {
-            whenever(chatClient.notifications) doReturn mock()
+            whenever(chatClient.queryChannel(any(), any(), any(), any())) doReturn channel.asCall()
         }
 
         fun givenSendReaction() = apply {
@@ -144,10 +144,10 @@ internal class MessageListViewModelTest {
         fun givenChannelState(
             channelData: ChannelData = ChannelData(
                 type = CHANNEL_TYPE,
-                channelId = CHANNEL_ID,
+                id = CHANNEL_ID,
             ),
             messageState: MessagesState = MessagesState.Result(
-                messages = emptyList()
+                messages = emptyList(),
             ),
         ) = apply {
             val channelState: ChannelState = mock {
@@ -159,17 +159,24 @@ internal class MessageListViewModelTest {
                 whenever(it.typing) doReturn MutableStateFlow(TypingEvent(channelId, emptyList()))
                 whenever(it.reads) doReturn MutableStateFlow(listOf())
                 whenever(it.endOfOlderMessages) doReturn MutableStateFlow(false)
+                whenever(it.endOfNewerMessages) doReturn MutableStateFlow(true)
                 whenever(it.toChannel()) doReturn Channel(type = CHANNEL_TYPE, id = CHANNEL_ID)
+                whenever(it.unreadCount) doReturn MutableStateFlow(0)
+                whenever(it.insideSearch) doReturn MutableStateFlow(false)
+                whenever(it.loadingNewerMessages) doReturn MutableStateFlow(false)
+                whenever(it.loadingOlderMessages) doReturn MutableStateFlow(false)
             }
             whenever(stateRegistry.channel(any(), any())) doReturn channelState
-            whenever(stateRegistry.scope) doReturn testCoroutines.scope
         }
 
         fun get(): MessageListViewModel {
             return MessageListViewModel(
-                chatClient = chatClient,
-                channelId = channelId,
-                clipboardHandler = mock(),
+                MessageListController(
+                    chatClient = chatClient,
+                    cid = channelId,
+                    clipboardHandler = mock(),
+                ),
+
             )
         }
     }
@@ -186,6 +193,11 @@ internal class MessageListViewModelTest {
         private val user1 = User(id = "Jc", name = "Jc Miñarro")
         private val message1 = Message(id = "message-id-1", createdAt = Date())
         private val message2 = Message(id = "message-id-2", createdAt = Date())
-        private val reaction1 = Reaction("message-id-1", "like", 1).apply { user = user1 }
+        private val reaction1 = Reaction(
+            messageId = "message-id-1",
+            type = "like",
+            score = 1,
+            user = user1,
+        )
     }
 }

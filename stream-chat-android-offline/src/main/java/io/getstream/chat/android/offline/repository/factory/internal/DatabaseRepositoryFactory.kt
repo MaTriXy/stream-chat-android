@@ -16,8 +16,6 @@
 
 package io.getstream.chat.android.offline.repository.factory.internal
 
-import io.getstream.chat.android.client.models.Message
-import io.getstream.chat.android.client.models.User
 import io.getstream.chat.android.client.persistance.repository.AttachmentRepository
 import io.getstream.chat.android.client.persistance.repository.ChannelConfigRepository
 import io.getstream.chat.android.client.persistance.repository.ChannelRepository
@@ -27,6 +25,8 @@ import io.getstream.chat.android.client.persistance.repository.ReactionRepositor
 import io.getstream.chat.android.client.persistance.repository.SyncStateRepository
 import io.getstream.chat.android.client.persistance.repository.UserRepository
 import io.getstream.chat.android.client.persistance.repository.factory.RepositoryFactory
+import io.getstream.chat.android.models.Message
+import io.getstream.chat.android.models.User
 import io.getstream.chat.android.offline.repository.database.internal.ChatDatabase
 import io.getstream.chat.android.offline.repository.domain.channel.internal.DatabaseChannelRepository
 import io.getstream.chat.android.offline.repository.domain.channelconfig.internal.DatabaseChannelConfigRepository
@@ -74,7 +74,7 @@ internal class DatabaseRepositoryFactory(
         val databaseChannelRepository = repositoriesCache[ChannelRepository::class.java] as? DatabaseChannelRepository?
 
         return databaseChannelRepository ?: run {
-            DatabaseChannelRepository(database.channelStateDao(), getUser, getMessage, DEFAULT_CACHE_SIZE)
+            DatabaseChannelRepository(database.channelStateDao(), getUser, getMessage)
                 .also { repository ->
                     repositoriesCache[ChannelRepository::class.java] = repository
                 }
@@ -100,9 +100,10 @@ internal class DatabaseRepositoryFactory(
         return databaseMessageRepository ?: run {
             DatabaseMessageRepository(
                 database.messageDao(),
+                database.replyMessageDao(),
                 getUser,
                 currentUser,
-                DEFAULT_CACHE_SIZE
+                DEFAULT_CACHE_SIZE,
             ).also { repository ->
                 repositoriesCache[MessageRepository::class.java] = repository
             }

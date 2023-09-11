@@ -20,15 +20,10 @@ import androidx.annotation.CheckResult
 import androidx.lifecycle.LifecycleOwner
 import io.getstream.chat.android.client.ChatClient
 import io.getstream.chat.android.client.ChatEventListener
-import io.getstream.chat.android.client.api.models.FilterObject
 import io.getstream.chat.android.client.api.models.PinnedMessagesPagination
 import io.getstream.chat.android.client.api.models.QueryChannelRequest
 import io.getstream.chat.android.client.api.models.SendActionRequest
 import io.getstream.chat.android.client.api.models.WatchChannelRequest
-import io.getstream.chat.android.client.api.models.querysort.QuerySortByField
-import io.getstream.chat.android.client.api.models.querysort.QuerySorter
-import io.getstream.chat.android.client.call.Call
-import io.getstream.chat.android.client.errors.ChatError
 import io.getstream.chat.android.client.events.ChannelDeletedEvent
 import io.getstream.chat.android.client.events.ChannelHiddenEvent
 import io.getstream.chat.android.client.events.ChannelTruncatedEvent
@@ -75,23 +70,28 @@ import io.getstream.chat.android.client.events.UserPresenceChangedEvent
 import io.getstream.chat.android.client.events.UserStartWatchingEvent
 import io.getstream.chat.android.client.events.UserStopWatchingEvent
 import io.getstream.chat.android.client.events.UserUpdatedEvent
-import io.getstream.chat.android.client.models.Attachment
-import io.getstream.chat.android.client.models.BannedUser
-import io.getstream.chat.android.client.models.BannedUsersSort
-import io.getstream.chat.android.client.models.Channel
-import io.getstream.chat.android.client.models.EventType
-import io.getstream.chat.android.client.models.Filters
-import io.getstream.chat.android.client.models.Member
-import io.getstream.chat.android.client.models.Message
-import io.getstream.chat.android.client.models.Mute
-import io.getstream.chat.android.client.models.Reaction
-import io.getstream.chat.android.client.models.UploadedFile
-import io.getstream.chat.android.client.models.UploadedImage
 import io.getstream.chat.android.client.uploader.FileUploader
 import io.getstream.chat.android.client.uploader.StreamCdnImageMimeTypes
 import io.getstream.chat.android.client.utils.ProgressCallback
-import io.getstream.chat.android.client.utils.Result
 import io.getstream.chat.android.client.utils.observable.Disposable
+import io.getstream.chat.android.models.Attachment
+import io.getstream.chat.android.models.BannedUser
+import io.getstream.chat.android.models.BannedUsersSort
+import io.getstream.chat.android.models.Channel
+import io.getstream.chat.android.models.EventType
+import io.getstream.chat.android.models.FilterObject
+import io.getstream.chat.android.models.Filters
+import io.getstream.chat.android.models.Member
+import io.getstream.chat.android.models.Message
+import io.getstream.chat.android.models.Mute
+import io.getstream.chat.android.models.Reaction
+import io.getstream.chat.android.models.UploadedFile
+import io.getstream.chat.android.models.UploadedImage
+import io.getstream.chat.android.models.querysort.QuerySortByField
+import io.getstream.chat.android.models.querysort.QuerySorter
+import io.getstream.result.Error
+import io.getstream.result.Result
+import io.getstream.result.call.Call
 import java.io.File
 import java.util.Date
 
@@ -142,7 +142,7 @@ public class ChannelClient internal constructor(
         return client.subscribeFor(
             lifecycleOwner,
             *eventTypes,
-            listener = filterRelevantEvents(listener)
+            listener = filterRelevantEvents(listener),
         )
     }
 
@@ -161,7 +161,7 @@ public class ChannelClient internal constructor(
         return client.subscribeFor(
             lifecycleOwner,
             *eventTypes,
-            listener = filterRelevantEvents(listener)
+            listener = filterRelevantEvents(listener),
         )
     }
 
@@ -589,16 +589,22 @@ public class ChannelClient internal constructor(
      *
      * @param memberIds The list of the member ids to be added.
      * @param systemMessage The system message object that will be shown in the channel.
+     * @param hideHistory Hides the history of the channel to the added member.
      *
      * @return Executable async [Call] responsible for adding the members.
      */
     @CheckResult
-    public fun addMembers(memberIds: List<String>, systemMessage: Message? = null): Call<Channel> {
+    public fun addMembers(
+        memberIds: List<String>,
+        systemMessage: Message? = null,
+        hideHistory: Boolean? = null,
+    ): Call<Channel> {
         return client.addMembers(
             channelType = channelType,
             channelId = channelId,
             memberIds = memberIds,
             systemMessage = systemMessage,
+            hideHistory = hideHistory,
         )
     }
 
@@ -615,6 +621,26 @@ public class ChannelClient internal constructor(
     @CheckResult
     public fun removeMembers(memberIds: List<String>, systemMessage: Message? = null): Call<Channel> {
         return client.removeMembers(
+            channelType = channelType,
+            channelId = channelId,
+            memberIds = memberIds,
+            systemMessage = systemMessage,
+        )
+    }
+
+    /**
+     * Invites members to a given channel.
+     *
+     * @see [ChatClient.inviteMembers]
+     *
+     * @param memberIds The list of the member ids to be invited.
+     * @param systemMessage The system message object that will be shown in the channel.
+     *
+     * @return Executable async [Call] responsible for inviting the members.
+     */
+    @CheckResult
+    public fun inviteMembers(memberIds: List<String>, systemMessage: Message? = null): Call<Channel> {
+        return client.inviteMembers(
             channelType = channelType,
             channelId = channelId,
             memberIds = memberIds,
@@ -712,7 +738,7 @@ public class ChannelClient internal constructor(
      * @param parentId Set this field to `message.id` to indicate that typing event is happening in a thread.
      *
      * @return Executable async [Call] which completes with [Result] having [ChatEvent] data if successful or
-     * [ChatError] if fails.
+     * [Error] if fails.
      */
     @CheckResult
     @JvmOverloads
@@ -726,7 +752,7 @@ public class ChannelClient internal constructor(
      * @param parentId Set this field to `message.id` to indicate that typing event is happening in a thread.
      *
      * @return Executable async [Call] which completes with [Result] having [ChatEvent] data if successful or
-     * [ChatError] if fails.
+     * [Error] if fails.
      */
     @CheckResult
     @JvmOverloads

@@ -1,5 +1,6 @@
 import io.getstream.chat.android.Dependencies
 import io.getstream.chat.android.Configuration
+import io.getstream.chat.android.Versions
 
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
@@ -40,6 +41,14 @@ android {
             it.java.srcDir "src/$it.name/kotlin"
         }
     }
+
+    buildFeatures {
+        compose true
+    }
+
+    composeOptions {
+        kotlinCompilerExtensionVersion Versions.ANDROIDX_COMPOSE_COMPILER
+    }
 }
 
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
@@ -47,14 +56,20 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
         freeCompilerArgs += [
                 '-progressive',
                 '-Xexplicit-api=strict',
-                '-Xopt-in=io.getstream.chat.android.core.internal.InternalStreamChatApi'
+                '-opt-in=io.getstream.chat.android.core.internal.InternalStreamChatApi'
         ]
     }
 }
 
 dependencies {
-    api project(":stream-chat-android-offline")
+    api project(":stream-chat-android-state")
     implementation project(":stream-chat-android-ui-utils")
+
+    implementation Dependencies.streamLog
+    implementation Dependencies.streamPushPermissionsSnackbar
+    implementation Dependencies.streamResult
+    implementation Dependencies.composeCompiler
+    implementation Dependencies.composeRuntime
 
     implementation Dependencies.androidxActivityKtx
     implementation Dependencies.androidxAnnotations
@@ -65,13 +80,12 @@ dependencies {
     implementation Dependencies.materialComponents
     implementation Dependencies.androidxLifecycleLiveDataKtx
 
-    api Dependencies.threeTenAbp
-
     implementation Dependencies.coil
     implementation Dependencies.coilGif
     implementation Dependencies.coilVideo
 
     testImplementation project(":stream-chat-android-test")
+    testImplementation testFixtures(project(":stream-chat-android-core"))
     testImplementation Dependencies.kotlinReflect
     testImplementation Dependencies.junitJupiterApi
     testImplementation Dependencies.junitJupiterParams

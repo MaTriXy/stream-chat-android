@@ -22,10 +22,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
 import io.getstream.chat.android.client.ChatClient
-import io.getstream.chat.android.client.models.Member
-import io.getstream.chat.android.livedata.utils.Event
-import io.getstream.chat.android.offline.extensions.watchChannelAsState
-import io.getstream.chat.android.offline.plugin.state.channel.ChannelState
+import io.getstream.chat.android.client.channel.state.ChannelState
+import io.getstream.chat.android.models.Member
+import io.getstream.chat.android.state.extensions.watchChannelAsState
+import io.getstream.chat.android.state.utils.Event
 import io.getstream.chat.ui.sample.util.extensions.isAnonymousChannel
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.filterNotNull
@@ -40,7 +40,7 @@ class ChatViewModel(
      * Holds information about the current channel and is actively updated.
      */
     private val channelState: StateFlow<ChannelState?> =
-        chatClient.watchChannelAsState(cid, DEFAULT_MESSAGE_LIMIT, viewModelScope)
+        chatClient.watchChannelAsState(cid, 0, viewModelScope)
 
     private val _navigationEvent: MutableLiveData<Event<NavigationEvent>> = MutableLiveData()
     val navigationEvent: LiveData<Event<NavigationEvent>> = _navigationEvent
@@ -56,7 +56,7 @@ class ChatViewModel(
                         NavigationEvent.NavigateToGroupChatInfo(cid)
                     } else {
                         NavigationEvent.NavigateToChatInfo(cid)
-                    }
+                    },
                 )
             }
         }
@@ -71,13 +71,5 @@ class ChatViewModel(
 
         data class NavigateToChatInfo(override val cid: String) : NavigationEvent()
         data class NavigateToGroupChatInfo(override val cid: String) : NavigationEvent()
-    }
-
-    private companion object {
-
-        /**
-         * The default limit for messages count in requests.
-         */
-        private const val DEFAULT_MESSAGE_LIMIT: Int = 30
     }
 }

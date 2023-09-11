@@ -32,9 +32,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.getstream.sdk.chat.model.AttachmentMetaData
-import com.getstream.sdk.chat.utils.AttachmentFilter
-import com.getstream.sdk.chat.utils.StorageHelper
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import io.getstream.chat.android.compose.R
@@ -44,6 +41,9 @@ import io.getstream.chat.android.compose.state.messages.attachments.Images
 import io.getstream.chat.android.compose.ui.components.attachments.images.ImagesPicker
 import io.getstream.chat.android.compose.ui.theme.ChatTheme
 import io.getstream.chat.android.compose.ui.util.StorageHelperWrapper
+import io.getstream.chat.android.ui.common.helper.internal.AttachmentFilter
+import io.getstream.chat.android.ui.common.helper.internal.StorageHelper
+import io.getstream.chat.android.ui.common.state.messages.composer.AttachmentMetaData
 
 /**
  * Holds the information required to add support for "images" tab in the attachment picker.
@@ -63,7 +63,7 @@ public class AttachmentsPickerImagesTabFactory : AttachmentsPickerTabFactory {
      * @param isSelected If the tab is selected.
      */
     @Composable
-    override fun pickerTabIcon(isEnabled: Boolean, isSelected: Boolean) {
+    override fun PickerTabIcon(isEnabled: Boolean, isSelected: Boolean) {
         Icon(
             painter = painterResource(id = R.drawable.stream_compose_ic_image_picker),
             contentDescription = stringResource(id = R.string.stream_compose_images_option),
@@ -85,7 +85,7 @@ public class AttachmentsPickerImagesTabFactory : AttachmentsPickerTabFactory {
      */
     @OptIn(ExperimentalPermissionsApi::class)
     @Composable
-    override fun pickerTabContent(
+    override fun PickerTabContent(
         attachments: List<AttachmentPickerItemState>,
         onAttachmentsChanged: (List<AttachmentPickerItemState>) -> Unit,
         onAttachmentItemSelected: (AttachmentPickerItemState) -> Unit,
@@ -94,12 +94,16 @@ public class AttachmentsPickerImagesTabFactory : AttachmentsPickerTabFactory {
         var storagePermissionRequested by rememberSaveable { mutableStateOf(false) }
         val storagePermissionState =
             rememberMultiplePermissionsState(
-                permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) listOf(
-                    Manifest.permission.READ_MEDIA_IMAGES,
-                    Manifest.permission.READ_MEDIA_VIDEO,
-                ) else listOf(
-                    Manifest.permission.READ_EXTERNAL_STORAGE
-                )
+                permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    listOf(
+                        Manifest.permission.READ_MEDIA_IMAGES,
+                        Manifest.permission.READ_MEDIA_VIDEO,
+                    )
+                } else {
+                    listOf(
+                        Manifest.permission.READ_EXTERNAL_STORAGE,
+                    )
+                },
             ) {
                 storagePermissionRequested = true
             }
@@ -115,10 +119,10 @@ public class AttachmentsPickerImagesTabFactory : AttachmentsPickerTabFactory {
                         top = 16.dp,
                         start = 2.dp,
                         end = 2.dp,
-                        bottom = 2.dp
+                        bottom = 2.dp,
                     ),
                     images = attachments,
-                    onImageSelected = onAttachmentItemSelected
+                    onImageSelected = onAttachmentItemSelected,
                 )
             }
             else -> {
@@ -132,7 +136,7 @@ public class AttachmentsPickerImagesTabFactory : AttachmentsPickerTabFactory {
         LaunchedEffect(storagePermissionState.allPermissionsGranted) {
             if (storagePermissionState.allPermissionsGranted) {
                 onAttachmentsChanged(
-                    storageHelper.getMedia().map { AttachmentPickerItemState(it, false) }
+                    storageHelper.getMedia().map { AttachmentPickerItemState(it, false) },
                 )
             }
         }

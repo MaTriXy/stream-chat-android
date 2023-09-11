@@ -16,12 +16,12 @@
 
 package io.getstream.chat.android.compose.viewmodel.messages
 
-import com.getstream.sdk.chat.model.AttachmentMetaData
-import io.getstream.chat.android.client.models.Attachment
 import io.getstream.chat.android.compose.state.messages.attachments.Files
 import io.getstream.chat.android.compose.state.messages.attachments.Images
 import io.getstream.chat.android.compose.ui.util.StorageHelperWrapper
+import io.getstream.chat.android.models.Attachment
 import io.getstream.chat.android.test.TestCoroutineExtension
+import io.getstream.chat.android.ui.common.state.messages.composer.AttachmentMetaData
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import org.amshove.kluent.`should be equal to`
 import org.junit.jupiter.api.Test
@@ -131,22 +131,22 @@ internal class AttachmentsPickerViewModelTest {
         private val imageAttachment1 = AttachmentMetaData(
             mimeType = "image/jpeg",
             title = "img_1.jpeg",
-            type = "image"
+            type = "image",
         )
         private val imageAttachment2 = AttachmentMetaData(
             mimeType = "image/png",
             title = "img_2.png",
-            type = "image"
+            type = "image",
         )
         private val fileAttachment1 = AttachmentMetaData(
             mimeType = "application/pdf",
             title = "pdf_1.pdf",
-            type = "file"
+            type = "file",
         )
         private val fileAttachment2 = AttachmentMetaData(
             mimeType = "application/pdf",
             title = "pdf_2.pdf",
-            type = "file"
+            type = "file",
         )
     }
 }

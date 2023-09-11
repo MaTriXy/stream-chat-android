@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Copyright (c) 2014-2022 Stream.io Inc. All rights reserved.
+
+    Licensed under the Stream License;
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+      https://github.com/GetStream/stream-chat-android/blob/main/LICENSE
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+-->
+<merge xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="6dp"
+    tools:parentTag="androidx.appcompat.widget.LinearLayoutCompat"
+    >
+
+    <FrameLayout
+        android:layout_width="36dp"
+        android:layout_height="56dp"
+        android:layout_marginStart="6dp"
+        >
+
+        <ProgressBar
+            android:id="@+id/loadingView"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_gravity="center"
+            android:indeterminateDrawable="@drawable/stream_ui_rotating_indeterminate_progress_gradient"
+            android:visibility="visible"
+            />
+
+        <androidx.appcompat.widget.AppCompatImageButton
+            android:id="@+id/playButton"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_gravity="center"
+            android:background="@drawable/stream_ui_white_shape_circular"
+            android:elevation="2dp"
+            android:padding="6dp"
+            android:src="@drawable/stream_ui_ic_play"
+            android:tint="@color/stream_ui_literal_black"
+            android:visibility="visible"
+            />
+    </FrameLayout>
+
+    <androidx.appcompat.widget.AppCompatTextView
+        android:id="@+id/duration"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:paddingHorizontal="6dp"
+        android:textAlignment="center"
+        android:textColor="#747881"
+        android:textSize="14sp"
+        android:visibility="visible"
+        tools:text="4:19"
+        />
+
+    <io.getstream.chat.android.ui.feature.messages.list.adapter.view.internal.AudioWavesSeekBar
+        android:id="@+id/audioSeekBar"
+        android:layout_width="0dp"
+        android:layout_height="36dp"
+        android:layout_gravity="center_vertical"
+        android:layout_weight="1"
+        android:background="@android:color/transparent"
+        />
+
+    <FrameLayout
+        android:layout_width="48dp"
+        android:layout_height="match_parent"
+        >
+
+        <androidx.appcompat.widget.AppCompatImageView
+            android:id="@+id/fileView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:src="@drawable/stream_ui_ic_file_aac"
+            android:visibility="visible"
+            />
+
+        <androidx.appcompat.widget.AppCompatTextView
+            android:id="@+id/speedButton"
+            android:layout_width="36dp"
+            android:layout_height="32dp"
+            android:layout_gravity="center"
+            android:layout_marginHorizontal="2dp"
+            android:background="@drawable/stream_ui_literal_white_shape_16dp_corners"
+            android:elevation="2dp"
+            android:gravity="center"
+            android:textAlignment="center"
+            android:textColor="#080707"
+            android:textSize="14sp"
+            android:visibility="gone"
+            tools:text="x0.5"
+            />
+    </FrameLayout>
+
+</merge>

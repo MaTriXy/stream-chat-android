@@ -16,8 +16,6 @@
 
 package io.getstream.chat.android.compose.ui.messages
 
-import android.content.ClipboardManager
-import android.content.Context
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
@@ -46,31 +44,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import io.getstream.chat.android.client.models.Channel
-import io.getstream.chat.android.client.models.Message
-import io.getstream.chat.android.common.model.DeleteMessage
-import io.getstream.chat.android.common.model.EditMessage
-import io.getstream.chat.android.common.model.SendAnyway
-import io.getstream.chat.android.common.state.Delete
-import io.getstream.chat.android.common.state.DeletedMessageVisibility
-import io.getstream.chat.android.common.state.Edit
-import io.getstream.chat.android.common.state.Flag
-import io.getstream.chat.android.common.state.MessageFooterVisibility
-import io.getstream.chat.android.common.state.MessageMode
-import io.getstream.chat.android.common.state.Reply
-import io.getstream.chat.android.common.state.Resend
 import io.getstream.chat.android.compose.R
-import io.getstream.chat.android.compose.state.imagepreview.ImagePreviewResultType
+import io.getstream.chat.android.compose.state.mediagallerypreview.MediaGalleryPreviewResultType
 import io.getstream.chat.android.compose.state.messageoptions.MessageOptionItemState
-import io.getstream.chat.android.compose.state.messages.SelectedMessageFailedModerationState
-import io.getstream.chat.android.compose.state.messages.SelectedMessageOptionsState
-import io.getstream.chat.android.compose.state.messages.SelectedMessageReactionsPickerState
-import io.getstream.chat.android.compose.state.messages.SelectedMessageReactionsState
-import io.getstream.chat.android.compose.state.messages.SelectedMessageState
+import io.getstream.chat.android.compose.state.messages.attachments.StatefulStreamMediaRecorder
 import io.getstream.chat.android.compose.ui.components.SimpleDialog
 import io.getstream.chat.android.compose.ui.components.messageoptions.defaultMessageOptionsState
 import io.getstream.chat.android.compose.ui.components.moderatedmessage.ModeratedMessageDialog
@@ -81,76 +61,69 @@ import io.getstream.chat.android.compose.ui.messages.attachments.AttachmentsPick
 import io.getstream.chat.android.compose.ui.messages.composer.MessageComposer
 import io.getstream.chat.android.compose.ui.messages.header.MessageListHeader
 import io.getstream.chat.android.compose.ui.messages.list.MessageList
+import io.getstream.chat.android.compose.ui.messages.list.ThreadMessagesStart
 import io.getstream.chat.android.compose.ui.theme.ChatTheme
 import io.getstream.chat.android.compose.ui.util.rememberMessageListState
 import io.getstream.chat.android.compose.viewmodel.messages.AttachmentsPickerViewModel
 import io.getstream.chat.android.compose.viewmodel.messages.MessageComposerViewModel
 import io.getstream.chat.android.compose.viewmodel.messages.MessageListViewModel
 import io.getstream.chat.android.compose.viewmodel.messages.MessagesViewModelFactory
-import kotlinx.coroutines.ExperimentalCoroutinesApi
+import io.getstream.chat.android.models.Channel
+import io.getstream.chat.android.models.Message
+import io.getstream.chat.android.ui.common.state.messages.Delete
+import io.getstream.chat.android.ui.common.state.messages.Edit
+import io.getstream.chat.android.ui.common.state.messages.Flag
+import io.getstream.chat.android.ui.common.state.messages.MessageMode
+import io.getstream.chat.android.ui.common.state.messages.Reply
+import io.getstream.chat.android.ui.common.state.messages.Resend
+import io.getstream.chat.android.ui.common.state.messages.list.DeleteMessage
+import io.getstream.chat.android.ui.common.state.messages.list.EditMessage
+import io.getstream.chat.android.ui.common.state.messages.list.SelectedMessageFailedModerationState
+import io.getstream.chat.android.ui.common.state.messages.list.SelectedMessageOptionsState
+import io.getstream.chat.android.ui.common.state.messages.list.SelectedMessageReactionsPickerState
+import io.getstream.chat.android.ui.common.state.messages.list.SelectedMessageReactionsState
+import io.getstream.chat.android.ui.common.state.messages.list.SelectedMessageState
+import io.getstream.chat.android.ui.common.state.messages.list.SendAnyway
+import io.getstream.chat.android.ui.common.state.messages.updateMessage
 
 /**
  * Default root Messages screen component, that provides the necessary ViewModels and
  * connects all the data handling operations, as well as some basic actions, like back pressed handling.
  *
  * Because this screen can be shown only if there is an active/selected Channel, the user must provide
- * a [channelId] in order to load up all the data. Otherwise, we can't show the UI.
+ * a [viewModelFactory] that contains the channel ID, in order to load up all the data. Otherwise, we can't show the UI.
  *
- * @param channelId The ID of the opened/active Channel.
- * @param messageLimit The limit of messages per query.
+ * @param viewModelFactory The factory used to build ViewModels and power the behavior.
+ * You can customize the behavior of the list through its parameters. For default behavior,
+ * simply create an instance and pass in just the channel ID and the context.
  * @param showHeader If we're showing the header or not.
- * @param enforceUniqueReactions If we need to enforce unique reactions or not.
- * @param showDateSeparators If we should show date separators or not.
- * @param showSystemMessages If we should show system messages or not.
- * @param deletedMessageVisibility The behavior of deleted messages in the list and if they're visible or not.
- * @param messageFooterVisibility The behavior of message footers in the list and their visibility.
  * @param onBackPressed Handler for when the user taps on the Back button and/or the system
  * back button.
- * @param onHeaderActionClick Handler for when the user taps on the header action.
- * @param messageId The ID of the message which we wish to focus on, if such exists.
- * @param navigateToThreadViaNotification If true, when a thread message arrives in a push notification,
- * clicking it will automatically open the thread in which the message is located. If false, the SDK will always
- * navigate to the channel containing the thread but will not navigate to the thread itself.
+ * @param onHeaderTitleClick Handler for when the user taps on the header section.
+ * @param onChannelAvatarClick Handler called when the user taps on the channel avatar.
  * @param skipPushNotification If new messages should skip triggering a push notification when sent. False by default.
  * @param skipEnrichUrl If new messages being sent, or existing ones being updated should skip enriching the URL.
  * If URL is not enriched, it will not be displayed as a link attachment. False by default.
+ * @param threadMessagesStart Thread messages start at the bottom or top of the screen.
+ * Default: [ThreadMessagesStart.BOTTOM].
  */
 @Suppress("LongMethod")
-@OptIn(ExperimentalCoroutinesApi::class)
 @Composable
 public fun MessagesScreen(
-    channelId: String,
-    messageLimit: Int = MessageListViewModel.DefaultMessageLimit,
+    viewModelFactory: MessagesViewModelFactory,
     showHeader: Boolean = true,
-    enforceUniqueReactions: Boolean = true,
-    showDateSeparators: Boolean = true,
-    showSystemMessages: Boolean = true,
-    deletedMessageVisibility: DeletedMessageVisibility = DeletedMessageVisibility.ALWAYS_VISIBLE,
-    messageFooterVisibility: MessageFooterVisibility = MessageFooterVisibility.WithTimeDifference(),
     onBackPressed: () -> Unit = {},
-    onHeaderActionClick: (channel: Channel) -> Unit = {},
-    messageId: String? = null,
-    navigateToThreadViaNotification: Boolean = false,
+    onHeaderTitleClick: (channel: Channel) -> Unit = {},
+    onChannelAvatarClick: () -> Unit = {},
     skipPushNotification: Boolean = false,
     skipEnrichUrl: Boolean = false,
+    threadMessagesStart: ThreadMessagesStart = ThreadMessagesStart.BOTTOM,
+    statefulStreamMediaRecorder: StatefulStreamMediaRecorder? = null,
 ) {
-    val factory = buildViewModelFactory(
-        context = LocalContext.current,
-        channelId = channelId,
-        enforceUniqueReactions = enforceUniqueReactions,
-        messageLimit = messageLimit,
-        showSystemMessages = showSystemMessages,
-        showDateSeparators = showDateSeparators,
-        deletedMessageVisibility = deletedMessageVisibility,
-        messageFooterVisibility = messageFooterVisibility,
-        messageId = messageId,
-        navigateToThreadViaNotification = navigateToThreadViaNotification,
-    )
-
-    val listViewModel = viewModel(MessageListViewModel::class.java, factory = factory)
-    val composerViewModel = viewModel(MessageComposerViewModel::class.java, factory = factory)
+    val listViewModel = viewModel(MessageListViewModel::class.java, factory = viewModelFactory)
+    val composerViewModel = viewModel(MessageComposerViewModel::class.java, factory = viewModelFactory)
     val attachmentsPickerViewModel =
-        viewModel(AttachmentsPickerViewModel::class.java, factory = factory)
+        viewModel(AttachmentsPickerViewModel::class.java, factory = viewModelFactory)
 
     val messageMode = listViewModel.messageMode
 
@@ -176,7 +149,6 @@ public fun MessagesScreen(
     BackHandler(enabled = true, onBack = backAction)
 
     Box(modifier = Modifier.fillMaxSize()) {
-
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             topBar = {
@@ -193,7 +165,8 @@ public fun MessagesScreen(
                         connectionState = connectionState,
                         messageMode = messageMode,
                         onBackPressed = backAction,
-                        onHeaderActionClick = onHeaderActionClick
+                        onHeaderTitleClick = onHeaderTitleClick,
+                        onChannelAvatarClick = onChannelAvatarClick,
                     )
                 }
             },
@@ -212,14 +185,15 @@ public fun MessagesScreen(
                     },
                     onSendMessage = { message ->
                         composerViewModel.sendMessage(
-                            message.apply {
-                                this.skipPushNotification = skipPushNotification
-                                this.skipEnrichUrl = skipEnrichUrl
-                            }
+                            message.copy(
+                                skipPushNotification = skipPushNotification,
+                                skipEnrichUrl = skipEnrichUrl,
+                            ),
                         )
                     },
+                    statefulStreamMediaRecorder = statefulStreamMediaRecorder,
                 )
-            }
+            },
         ) {
             val currentState = listViewModel.currentMessagesState
 
@@ -229,34 +203,38 @@ public fun MessagesScreen(
                     .background(ChatTheme.colors.appBackground)
                     .padding(it),
                 viewModel = listViewModel,
-                lazyListState = rememberMessageListState(parentMessageId = currentState.parentMessageId),
+                messagesLazyListState = rememberMessageListState(parentMessageId = currentState.parentMessageId),
+                threadMessagesStart = threadMessagesStart,
                 onThreadClick = { message ->
                     composerViewModel.setMessageMode(MessageMode.MessageThread(message))
                     listViewModel.openMessageThread(message)
                 },
-                onImagePreviewResult = { result ->
+                onMediaGalleryPreviewResult = { result ->
                     when (result?.resultType) {
-                        ImagePreviewResultType.QUOTE -> {
-                            val message = listViewModel.getMessageWithId(result.messageId)
+                        MediaGalleryPreviewResultType.QUOTE -> {
+                            val message = listViewModel.getMessageById(result.messageId)
 
                             if (message != null) {
                                 composerViewModel.performMessageAction(
                                     Reply(
-                                        message.apply {
-                                            this.skipPushNotification = skipPushNotification
-                                            this.skipEnrichUrl = skipEnrichUrl
-                                        }
-                                    )
+                                        message.copy(
+                                            skipPushNotification = skipPushNotification,
+                                            skipEnrichUrl = skipEnrichUrl,
+                                        ),
+                                    ),
                                 )
                             }
                         }
 
-                        ImagePreviewResultType.SHOW_IN_CHAT -> {
-                            listViewModel.focusMessage(result.messageId)
+                        MediaGalleryPreviewResultType.SHOW_IN_CHAT -> {
+                            listViewModel.scrollToMessage(
+                                messageId = result.messageId,
+                                parentMessageId = result.parentMessageId,
+                            )
                         }
                         null -> Unit
                     }
-                }
+                },
             )
         }
 
@@ -268,7 +246,7 @@ public fun MessagesScreen(
         )
         AttachmentsPickerMenu(
             attachmentsPickerViewModel = attachmentsPickerViewModel,
-            composerViewModel = composerViewModel
+            composerViewModel = composerViewModel,
         )
         MessageModerationDialog(
             listViewModel = listViewModel,
@@ -347,7 +325,6 @@ private fun BoxScope.MessagesScreenMenus(
     skipPushNotification: Boolean,
     skipEnrichUrl: Boolean,
 ) {
-
     val user by listViewModel.user.collectAsState()
 
     val ownCapabilities = selectedMessageState?.ownCapabilities ?: setOf()
@@ -358,7 +335,7 @@ private fun BoxScope.MessagesScreenMenus(
         selectedMessage = selectedMessage,
         currentUser = user,
         isInThread = isInThread,
-        ownCapabilities = ownCapabilities
+        ownCapabilities = ownCapabilities,
     )
 
     var messageOptions by remember {
@@ -372,7 +349,7 @@ private fun BoxScope.MessagesScreenMenus(
     AnimatedVisibility(
         visible = selectedMessageState is SelectedMessageOptionsState && selectedMessage.id.isNotEmpty(),
         enter = fadeIn(),
-        exit = fadeOut(animationSpec = tween(durationMillis = AnimationConstants.DefaultDurationMillis / 2))
+        exit = fadeOut(animationSpec = tween(durationMillis = AnimationConstants.DefaultDurationMillis / 2)),
     ) {
         SelectedMessageMenu(
             modifier = Modifier
@@ -380,34 +357,38 @@ private fun BoxScope.MessagesScreenMenus(
                 .animateEnterExit(
                     enter = slideInVertically(
                         initialOffsetY = { height -> height },
-                        animationSpec = tween()
+                        animationSpec = tween(),
                     ),
                     exit = slideOutVertically(
                         targetOffsetY = { height -> height },
-                        animationSpec = tween(durationMillis = AnimationConstants.DefaultDurationMillis / 2)
-                    )
+                        animationSpec = tween(durationMillis = AnimationConstants.DefaultDurationMillis / 2),
+                    ),
                 ),
             messageOptions = messageOptions,
             message = selectedMessage,
             ownCapabilities = ownCapabilities,
             onMessageAction = { action ->
-                action.message.skipPushNotification = skipPushNotification
-                action.message.skipEnrichUrl = skipEnrichUrl
-
-                composerViewModel.performMessageAction(action)
-                listViewModel.performMessageAction(action)
+                action.updateMessage(
+                    action.message.copy(
+                        skipPushNotification = skipPushNotification,
+                        skipEnrichUrl = skipEnrichUrl,
+                    ),
+                ).let {
+                    composerViewModel.performMessageAction(it)
+                    listViewModel.performMessageAction(it)
+                }
             },
             onShowMoreReactionsSelected = {
                 listViewModel.selectExtendedReactions(selectedMessage)
             },
-            onDismiss = { listViewModel.removeOverlay() }
+            onDismiss = { listViewModel.removeOverlay() },
         )
     }
 
     AnimatedVisibility(
         visible = selectedMessageState is SelectedMessageReactionsState && selectedMessage.id.isNotEmpty(),
         enter = fadeIn(),
-        exit = fadeOut(animationSpec = tween(durationMillis = AnimationConstants.DefaultDurationMillis / 2))
+        exit = fadeOut(animationSpec = tween(durationMillis = AnimationConstants.DefaultDurationMillis / 2)),
     ) {
         SelectedReactionsMenu(
             modifier = Modifier
@@ -415,27 +396,31 @@ private fun BoxScope.MessagesScreenMenus(
                 .animateEnterExit(
                     enter = slideInVertically(
                         initialOffsetY = { height -> height },
-                        animationSpec = tween()
+                        animationSpec = tween(),
                     ),
                     exit = slideOutVertically(
                         targetOffsetY = { height -> height },
-                        animationSpec = tween(durationMillis = AnimationConstants.DefaultDurationMillis / 2)
-                    )
+                        animationSpec = tween(durationMillis = AnimationConstants.DefaultDurationMillis / 2),
+                    ),
                 ),
             currentUser = user,
             message = selectedMessage,
             onMessageAction = { action ->
-                action.message.skipPushNotification = skipPushNotification
-                action.message.skipEnrichUrl = skipEnrichUrl
-
-                composerViewModel.performMessageAction(action)
-                listViewModel.performMessageAction(action)
+                action.updateMessage(
+                    action.message.copy(
+                        skipPushNotification = skipPushNotification,
+                        skipEnrichUrl = skipEnrichUrl,
+                    ),
+                ).let {
+                    composerViewModel.performMessageAction(it)
+                    listViewModel.performMessageAction(it)
+                }
             },
             onShowMoreReactionsSelected = {
                 listViewModel.selectExtendedReactions(selectedMessage)
             },
             onDismiss = { listViewModel.removeOverlay() },
-            ownCapabilities = selectedMessageState?.ownCapabilities ?: setOf()
+            ownCapabilities = selectedMessageState?.ownCapabilities ?: setOf(),
         )
     }
 }
@@ -465,11 +450,10 @@ private fun BoxScope.MessagesScreenReactionsPicker(
     skipPushNotification: Boolean,
     skipEnrichUrl: Boolean,
 ) {
-
     AnimatedVisibility(
         visible = selectedMessageState is SelectedMessageReactionsPickerState && selectedMessage.id.isNotEmpty(),
         enter = fadeIn(),
-        exit = fadeOut(animationSpec = tween(durationMillis = AnimationConstants.DefaultDurationMillis / 2))
+        exit = fadeOut(animationSpec = tween(durationMillis = AnimationConstants.DefaultDurationMillis / 2)),
     ) {
         ReactionsPicker(
             modifier = Modifier
@@ -479,22 +463,26 @@ private fun BoxScope.MessagesScreenReactionsPicker(
                 .animateEnterExit(
                     enter = slideInVertically(
                         initialOffsetY = { height -> height },
-                        animationSpec = tween()
+                        animationSpec = tween(),
                     ),
                     exit = slideOutVertically(
                         targetOffsetY = { height -> height },
-                        animationSpec = tween(durationMillis = AnimationConstants.DefaultDurationMillis / 2)
-                    )
+                        animationSpec = tween(durationMillis = AnimationConstants.DefaultDurationMillis / 2),
+                    ),
                 ),
             message = selectedMessage,
             onMessageAction = { action ->
-                action.message.skipPushNotification = skipPushNotification
-                action.message.skipEnrichUrl = skipEnrichUrl
-
-                composerViewModel.performMessageAction(action)
-                listViewModel.performMessageAction(action)
+                action.updateMessage(
+                    action.message.copy(
+                        skipPushNotification = skipPushNotification,
+                        skipEnrichUrl = skipEnrichUrl,
+                    ),
+                ).let {
+                    composerViewModel.performMessageAction(action)
+                    listViewModel.performMessageAction(action)
+                }
             },
-            onDismiss = { listViewModel.removeOverlay() }
+            onDismiss = { listViewModel.removeOverlay() },
         )
     }
 }
@@ -514,13 +502,12 @@ private fun BoxScope.AttachmentsPickerMenu(
     attachmentsPickerViewModel: AttachmentsPickerViewModel,
     composerViewModel: MessageComposerViewModel,
 ) {
-
     val isShowingAttachments = attachmentsPickerViewModel.isShowingAttachments
 
     AnimatedVisibility(
         visible = isShowingAttachments,
         enter = fadeIn(),
-        exit = fadeOut(animationSpec = tween(delayMillis = AnimationConstants.DefaultDurationMillis / 2))
+        exit = fadeOut(animationSpec = tween(delayMillis = AnimationConstants.DefaultDurationMillis / 2)),
     ) {
         AttachmentsPicker(
             attachmentsPickerViewModel = attachmentsPickerViewModel,
@@ -530,12 +517,12 @@ private fun BoxScope.AttachmentsPickerMenu(
                 .animateEnterExit(
                     enter = slideInVertically(
                         initialOffsetY = { height -> height },
-                        animationSpec = tween()
+                        animationSpec = tween(),
                     ),
                     exit = slideOutVertically(
                         targetOffsetY = { height -> height },
-                        animationSpec = tween(delayMillis = AnimationConstants.DefaultDurationMillis / 2)
-                    )
+                        animationSpec = tween(delayMillis = AnimationConstants.DefaultDurationMillis / 2),
+                    ),
                 ),
             onAttachmentsSelected = { attachments ->
                 attachmentsPickerViewModel.changeAttachmentState(false)
@@ -544,7 +531,7 @@ private fun BoxScope.AttachmentsPickerMenu(
             onDismiss = {
                 attachmentsPickerViewModel.changeAttachmentState(false)
                 attachmentsPickerViewModel.dismissAttachments()
-            }
+            },
         )
     }
 }
@@ -573,7 +560,7 @@ private fun MessageModerationDialog(
             message = selectedMessage,
             modifier = Modifier.background(
                 shape = MaterialTheme.shapes.medium,
-                color = ChatTheme.colors.inputBackground
+                color = ChatTheme.colors.inputBackground,
             ),
             onDismissRequest = { listViewModel.removeOverlay() },
             onDialogOptionInteraction = { message, action ->
@@ -582,17 +569,17 @@ private fun MessageModerationDialog(
                     EditMessage -> composerViewModel.performMessageAction(Edit(message))
                     SendAnyway -> listViewModel.performMessageAction(
                         Resend(
-                            message.apply {
-                                this.skipPushNotification = skipPushNotification
-                                this.skipEnrichUrl = skipEnrichUrl
-                            }
-                        )
+                            message.copy(
+                                skipPushNotification = skipPushNotification,
+                                skipEnrichUrl = skipEnrichUrl,
+                            ),
+                        ),
                     )
                     else -> {
                         // Custom events
                     }
                 }
-            }
+            },
         )
     }
 }
@@ -606,7 +593,6 @@ private fun MessageModerationDialog(
  */
 @Composable
 private fun MessageDialogs(listViewModel: MessageListViewModel) {
-
     val messageActions = listViewModel.messageActions
 
     val deleteAction = messageActions.firstOrNull { it is Delete }
@@ -617,7 +603,7 @@ private fun MessageDialogs(listViewModel: MessageListViewModel) {
             title = stringResource(id = R.string.stream_compose_delete_message_title),
             message = stringResource(id = R.string.stream_compose_delete_message_text),
             onPositiveAction = { listViewModel.deleteMessage(deleteAction.message) },
-            onDismiss = { listViewModel.dismissMessageAction(deleteAction) }
+            onDismiss = { listViewModel.dismissMessageAction(deleteAction) },
         )
     }
 
@@ -629,51 +615,7 @@ private fun MessageDialogs(listViewModel: MessageListViewModel) {
             title = stringResource(id = R.string.stream_compose_flag_message_title),
             message = stringResource(id = R.string.stream_compose_flag_message_text),
             onPositiveAction = { listViewModel.flagMessage(flagAction.message) },
-            onDismiss = { listViewModel.dismissMessageAction(flagAction) }
+            onDismiss = { listViewModel.dismissMessageAction(flagAction) },
         )
     }
-}
-
-/**
- * Builds the [MessagesViewModelFactory] required to run the Conversation/Messages screen.
- *
- * @param context Used to build the [ClipboardManager].
- * @param channelId The current channel ID, to load the messages from.
- * @param enforceUniqueReactions Flag to enforce unique reactions or enable multiple from the same user.
- * @param messageLimit The limit when loading messages.
- * @param showDateSeparators If we should show date separators or not.
- * @param showSystemMessages If we should show system messages or not. * @param deletedMessageVisibility The behavior of deleted messages in the list.
- * @param deletedMessageVisibility The behavior of deleted messages in the list and if they're visible or not.
- * @param messageFooterVisibility The behavior of message footers in the list and their visibility.
- * @param messageId The ID of the message which we wish to focus on, if such exists.
- * @param navigateToThreadViaNotification If true, when a thread message arrives in a push notification,
- * clicking it will automatically open the thread in which the message is located. If false, the SDK will always
- * navigate to the channel containing the thread but will not navigate to the thread itself.
- */
-@ExperimentalCoroutinesApi
-@Suppress("LongParameterList")
-private fun buildViewModelFactory(
-    context: Context,
-    channelId: String,
-    enforceUniqueReactions: Boolean,
-    messageLimit: Int,
-    showDateSeparators: Boolean,
-    showSystemMessages: Boolean,
-    deletedMessageVisibility: DeletedMessageVisibility,
-    messageFooterVisibility: MessageFooterVisibility,
-    messageId: String? = null,
-    navigateToThreadViaNotification: Boolean = false,
-): MessagesViewModelFactory {
-    return MessagesViewModelFactory(
-        context = context,
-        channelId = channelId,
-        enforceUniqueReactions = enforceUniqueReactions,
-        messageLimit = messageLimit,
-        showDateSeparators = showDateSeparators,
-        showSystemMessages = showSystemMessages,
-        deletedMessageVisibility = deletedMessageVisibility,
-        messageFooterVisibility = messageFooterVisibility,
-        messageId = messageId,
-        navigateToThreadViaNotification = navigateToThreadViaNotification,
-    )
 }

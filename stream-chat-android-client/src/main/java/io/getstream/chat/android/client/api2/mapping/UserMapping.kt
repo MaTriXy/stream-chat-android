@@ -21,8 +21,8 @@ import io.getstream.chat.android.client.api2.model.dto.DownstreamChannelMuteDto
 import io.getstream.chat.android.client.api2.model.dto.DownstreamMuteDto
 import io.getstream.chat.android.client.api2.model.dto.DownstreamUserDto
 import io.getstream.chat.android.client.api2.model.dto.UpstreamUserDto
-import io.getstream.chat.android.client.models.Device
-import io.getstream.chat.android.client.models.User
+import io.getstream.chat.android.models.Device
+import io.getstream.chat.android.models.User
 
 internal fun User.toDto(): UpstreamUserDto =
     UpstreamUserDto(
@@ -48,6 +48,7 @@ internal fun DownstreamUserDto.toDomain(): User =
         devices = devices.orEmpty().map(DeviceDto::toDomain),
         online = online,
         createdAt = created_at,
+        deactivatedAt = deactivated_at,
         updatedAt = updated_at,
         lastActive = last_active,
         totalUnreadCount = total_unread_count,

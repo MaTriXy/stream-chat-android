@@ -17,12 +17,12 @@
 package io.getstream.chat.android.client.events
 
 import io.getstream.chat.android.client.clientstate.DisconnectCause
-import io.getstream.chat.android.client.errors.ChatError
-import io.getstream.chat.android.client.models.Channel
-import io.getstream.chat.android.client.models.Member
-import io.getstream.chat.android.client.models.Message
-import io.getstream.chat.android.client.models.Reaction
-import io.getstream.chat.android.client.models.User
+import io.getstream.chat.android.models.Channel
+import io.getstream.chat.android.models.Member
+import io.getstream.chat.android.models.Message
+import io.getstream.chat.android.models.Reaction
+import io.getstream.chat.android.models.User
+import io.getstream.result.Error
 import java.util.Date
 
 public sealed class ChatEvent {
@@ -540,6 +540,7 @@ public data class ChannelUserBannedEvent(
     override val channelId: String,
     override val user: User,
     val expiration: Date?,
+    val shadow: Boolean,
 ) : CidEvent(), UserEvent
 
 /**
@@ -667,7 +668,7 @@ public data class ErrorEvent(
     override val type: String,
     override val createdAt: Date,
     override val rawCreatedAt: String?,
-    val error: ChatError,
+    val error: Error,
 ) : ChatEvent()
 
 /**

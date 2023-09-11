@@ -17,13 +17,11 @@
 package io.getstream.chat.android.client.api2
 
 import io.getstream.chat.android.client.api.ChatApi
-import io.getstream.chat.android.client.api.models.FilterObject
 import io.getstream.chat.android.client.api.models.PinnedMessagesPagination
 import io.getstream.chat.android.client.api.models.QueryChannelRequest
 import io.getstream.chat.android.client.api.models.QueryChannelsRequest
 import io.getstream.chat.android.client.api.models.QueryUsersRequest
 import io.getstream.chat.android.client.api.models.SearchMessagesRequest
-import io.getstream.chat.android.client.api.models.querysort.QuerySorter
 import io.getstream.chat.android.client.api2.endpoint.ChannelApi
 import io.getstream.chat.android.client.api2.endpoint.ConfigApi
 import io.getstream.chat.android.client.api2.endpoint.DeviceApi
@@ -51,6 +49,7 @@ import io.getstream.chat.android.client.api2.model.requests.AddMembersRequest
 import io.getstream.chat.android.client.api2.model.requests.BanUserRequest
 import io.getstream.chat.android.client.api2.model.requests.GuestUserRequest
 import io.getstream.chat.android.client.api2.model.requests.HideChannelRequest
+import io.getstream.chat.android.client.api2.model.requests.InviteMembersRequest
 import io.getstream.chat.android.client.api2.model.requests.MarkReadRequest
 import io.getstream.chat.android.client.api2.model.requests.MuteChannelRequest
 import io.getstream.chat.android.client.api2.model.requests.MuteUserRequest
@@ -79,36 +78,38 @@ import io.getstream.chat.android.client.api2.model.response.ChannelResponse
 import io.getstream.chat.android.client.api2.model.response.CreateVideoCallResponse
 import io.getstream.chat.android.client.api2.model.response.TranslateMessageRequest
 import io.getstream.chat.android.client.api2.model.response.VideoCallTokenResponse
-import io.getstream.chat.android.client.call.Call
-import io.getstream.chat.android.client.call.CoroutineCall
-import io.getstream.chat.android.client.call.map
-import io.getstream.chat.android.client.call.toUnitCall
 import io.getstream.chat.android.client.events.ChatEvent
 import io.getstream.chat.android.client.extensions.enrichWithCid
 import io.getstream.chat.android.client.helpers.CallPostponeHelper
-import io.getstream.chat.android.client.models.AppSettings
-import io.getstream.chat.android.client.models.BannedUser
-import io.getstream.chat.android.client.models.BannedUsersSort
-import io.getstream.chat.android.client.models.Channel
-import io.getstream.chat.android.client.models.Device
-import io.getstream.chat.android.client.models.Flag
-import io.getstream.chat.android.client.models.GuestUser
-import io.getstream.chat.android.client.models.Member
-import io.getstream.chat.android.client.models.Message
-import io.getstream.chat.android.client.models.Mute
-import io.getstream.chat.android.client.models.Reaction
-import io.getstream.chat.android.client.models.SearchMessagesResult
-import io.getstream.chat.android.client.models.UploadedFile
-import io.getstream.chat.android.client.models.UploadedImage
-import io.getstream.chat.android.client.models.User
-import io.getstream.chat.android.client.models.VideoCallInfo
-import io.getstream.chat.android.client.models.VideoCallToken
 import io.getstream.chat.android.client.parser.toMap
 import io.getstream.chat.android.client.scope.UserScope
 import io.getstream.chat.android.client.uploader.FileUploader
 import io.getstream.chat.android.client.utils.ProgressCallback
-import io.getstream.chat.android.client.utils.Result
-import io.getstream.logging.StreamLog
+import io.getstream.chat.android.models.AppSettings
+import io.getstream.chat.android.models.BannedUser
+import io.getstream.chat.android.models.BannedUsersSort
+import io.getstream.chat.android.models.Channel
+import io.getstream.chat.android.models.Device
+import io.getstream.chat.android.models.FilterObject
+import io.getstream.chat.android.models.Flag
+import io.getstream.chat.android.models.GuestUser
+import io.getstream.chat.android.models.Member
+import io.getstream.chat.android.models.Message
+import io.getstream.chat.android.models.Mute
+import io.getstream.chat.android.models.Reaction
+import io.getstream.chat.android.models.SearchMessagesResult
+import io.getstream.chat.android.models.UploadedFile
+import io.getstream.chat.android.models.UploadedImage
+import io.getstream.chat.android.models.User
+import io.getstream.chat.android.models.VideoCallInfo
+import io.getstream.chat.android.models.VideoCallToken
+import io.getstream.chat.android.models.querysort.QuerySorter
+import io.getstream.log.taggedLogger
+import io.getstream.result.Result
+import io.getstream.result.call.Call
+import io.getstream.result.call.CoroutineCall
+import io.getstream.result.call.map
+import io.getstream.result.call.toUnitCall
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -118,7 +119,9 @@ import java.util.Date
 import io.getstream.chat.android.client.api.models.SendActionRequest as DomainSendActionRequest
 
 @Suppress("TooManyFunctions", "LargeClass")
-internal class MoshiChatApi @Suppress("LongParameterList") constructor(
+internal class MoshiChatApi
+@Suppress("LongParameterList")
+constructor(
     private val fileUploader: FileUploader,
     private val userApi: UserApi,
     private val guestApi: GuestApi,
@@ -134,7 +137,7 @@ internal class MoshiChatApi @Suppress("LongParameterList") constructor(
     private val userScope: UserScope,
 ) : ChatApi {
 
-    private val logger = StreamLog.getLogger("Chat:MoshiChatApi")
+    private val logger by taggedLogger("Chat:MoshiChatApi")
 
     private val callPostponeHelper: CallPostponeHelper by lazy {
         CallPostponeHelper(
@@ -201,7 +204,7 @@ internal class MoshiChatApi @Suppress("LongParameterList") constructor(
             messageId = message.id,
             message = UpdateMessageRequest(
                 message = message.toDto(),
-                skip_enrich_url = message.skipEnrichUrl
+                skip_enrich_url = message.skipEnrichUrl,
             ),
         ).map { response -> response.message.toDomain() }
     }
@@ -218,7 +221,7 @@ internal class MoshiChatApi @Suppress("LongParameterList") constructor(
                 set = set,
                 unset = unset,
                 skip_enrich_url = skipEnrichUrl,
-            )
+            ),
         ).map { response -> response.message.toDomain() }
     }
 
@@ -231,7 +234,7 @@ internal class MoshiChatApi @Suppress("LongParameterList") constructor(
     override fun deleteMessage(messageId: String, hard: Boolean): Call<Message> {
         return messageApi.deleteMessage(
             messageId = messageId,
-            hard = if (hard) true else null
+            hard = if (hard) true else null,
         ).map { response -> response.message.toDomain() }
     }
 
@@ -314,7 +317,7 @@ internal class MoshiChatApi @Suppress("LongParameterList") constructor(
             body = MuteUserRequest(
                 target_id = userId,
                 user_id = this.userId,
-                timeout = null
+                timeout = null,
             ),
         ).toUnitCall()
     }
@@ -327,7 +330,7 @@ internal class MoshiChatApi @Suppress("LongParameterList") constructor(
         return moderationApi.muteChannel(
             body = MuteChannelRequest(
                 channel_cid = "$channelType:$channelId",
-                expiration = expiration
+                expiration = expiration,
             ),
         ).toUnitCall()
     }
@@ -339,7 +342,7 @@ internal class MoshiChatApi @Suppress("LongParameterList") constructor(
         return moderationApi.unmuteChannel(
             body = MuteChannelRequest(
                 channel_cid = "$channelType:$channelId",
-                expiration = null
+                expiration = null,
             ),
         ).toUnitCall()
     }
@@ -357,7 +360,7 @@ internal class MoshiChatApi @Suppress("LongParameterList") constructor(
                     channelId = channelId,
                     userId = userId,
                     file = file,
-                    callback
+                    callback,
                 )
             } else {
                 fileUploader.sendFile(
@@ -383,14 +386,14 @@ internal class MoshiChatApi @Suppress("LongParameterList") constructor(
                     channelId = channelId,
                     userId = userId,
                     file = file,
-                    callback
+                    callback,
                 )
             } else {
                 fileUploader.sendImage(
                     channelType = channelType,
                     channelId = channelId,
                     userId = userId,
-                    file = file
+                    file = file,
                 )
             }
         }
@@ -402,9 +405,9 @@ internal class MoshiChatApi @Suppress("LongParameterList") constructor(
                 channelType = channelType,
                 channelId = channelId,
                 userId = userId,
-                url = url
+                url = url,
             )
-            Result(Unit)
+            Result.Success(Unit)
         }
     }
 
@@ -414,9 +417,9 @@ internal class MoshiChatApi @Suppress("LongParameterList") constructor(
                 channelType = channelType,
                 channelId = channelId,
                 userId = userId,
-                url = url
+                url = url,
             )
-            Result(Unit)
+            Result.Success(Unit)
         }
     }
 
@@ -456,7 +459,7 @@ internal class MoshiChatApi @Suppress("LongParameterList") constructor(
                 type = channelType,
                 id = channelId,
                 shadow = shadow,
-            )
+            ),
         ).toUnitCall()
     }
 
@@ -494,7 +497,7 @@ internal class MoshiChatApi @Suppress("LongParameterList") constructor(
                 created_at_after_or_equal = createdAtAfterOrEqual,
                 created_at_before = createdAtBefore,
                 created_at_before_or_equal = createdAtBeforeOrEqual,
-            )
+            ),
         ).map { response -> response.bans.map(BannedUserResponse::toDomain) }
     }
 
@@ -613,7 +616,7 @@ internal class MoshiChatApi @Suppress("LongParameterList") constructor(
         return channelApi.truncateChannel(
             channelType = channelType,
             channelId = channelId,
-            body = TruncateChannelRequest(message = systemMessage?.toDto())
+            body = TruncateChannelRequest(message = systemMessage?.toDto()),
         ).map(this::flattenChannel)
     }
 
@@ -661,11 +664,12 @@ internal class MoshiChatApi @Suppress("LongParameterList") constructor(
         channelId: String,
         members: List<String>,
         systemMessage: Message?,
+        hideHistory: Boolean?,
     ): Call<Channel> {
         return channelApi.addMembers(
             channelType = channelType,
             channelId = channelId,
-            body = AddMembersRequest(members, systemMessage?.toDto()),
+            body = AddMembersRequest(members, systemMessage?.toDto(), hideHistory),
         ).map(this::flattenChannel)
     }
 
@@ -682,17 +686,32 @@ internal class MoshiChatApi @Suppress("LongParameterList") constructor(
         ).map(this::flattenChannel)
     }
 
+    override fun inviteMembers(
+        channelType: String,
+        channelId: String,
+        members: List<String>,
+        systemMessage: Message?,
+    ): Call<Channel> {
+        return channelApi.inviteMembers(
+            channelType = channelType,
+            channelId = channelId,
+            body = InviteMembersRequest(members, systemMessage?.toDto()),
+        ).map(this::flattenChannel)
+    }
+
     private fun flattenChannel(response: ChannelResponse): Channel {
-        return response.channel.toDomain().apply {
-            watcherCount = response.watcher_count
-            read = response.read.map(DownstreamChannelUserRead::toDomain)
-            members = response.members.map(DownstreamMemberDto::toDomain)
-            membership = response.membership?.toDomain()
-            messages = response.messages.map { it.toDomain().enrichWithCid(cid) }
-            watchers = response.watchers.map(DownstreamUserDto::toDomain)
-            hidden = response.hidden
-            hiddenMessagesBefore = response.hide_messages_before
-            unreadCount = response.read.firstOrNull { it.user.id == userId }?.unread_messages
+        return response.channel.toDomain().let { channel ->
+            channel.copy(
+                watcherCount = response.watcher_count,
+                read = response.read.map(DownstreamChannelUserRead::toDomain),
+                members = response.members.map(DownstreamMemberDto::toDomain),
+                membership = response.membership?.toDomain(),
+                messages = response.messages.map { it.toDomain().enrichWithCid(channel.cid) },
+                watchers = response.watchers.map(DownstreamUserDto::toDomain),
+                hidden = response.hidden,
+                hiddenMessagesBefore = response.hide_messages_before,
+                unreadCount = response.read.firstOrNull { it.user.id == userId }?.unread_messages,
+            )
         }
     }
 
@@ -769,10 +788,12 @@ internal class MoshiChatApi @Suppress("LongParameterList") constructor(
         return generalApi.searchMessages(newRequest)
             .map { response ->
                 response.results.map { resp ->
-                    resp.message.toDomain().apply {
-                        (cid.takeUnless(CharSequence::isBlank) ?: channelInfo?.cid)
-                            ?.let(::enrichWithCid)
-                    }
+                    resp.message.toDomain()
+                        .let { message ->
+                            (message.cid.takeUnless(CharSequence::isBlank) ?: message.channelInfo?.cid)
+                                ?.let(message::enrichWithCid)
+                                ?: message
+                        }
                 }
             }
     }
@@ -798,9 +819,10 @@ internal class MoshiChatApi @Suppress("LongParameterList") constructor(
                 val results = response.results
 
                 val messages = results.map { resp ->
-                    resp.message.toDomain().apply {
-                        (cid.takeUnless(CharSequence::isBlank) ?: channelInfo?.cid)
-                            ?.let(::enrichWithCid)
+                    resp.message.toDomain().let { message ->
+                        (message.cid.takeUnless(CharSequence::isBlank) ?: message.channelInfo?.cid)
+                            ?.let(message::enrichWithCid)
+                            ?: message
                     }
                 }
                 SearchMessagesResult(
@@ -932,7 +954,7 @@ internal class MoshiChatApi @Suppress("LongParameterList") constructor(
         return callApi.createCall(
             channelId = channelId,
             channelType = channelType,
-            request = VideoCallCreateRequest(id = callId, type = callType)
+            request = VideoCallCreateRequest(id = callId, type = callType),
         ).map(CreateVideoCallResponse::toDomain)
     }
 

@@ -15,7 +15,6 @@ ext {
 apply from: "${rootDir}/scripts/publish-module.gradle"
 apply from: "${rootDir}/scripts/android.gradle"
 
-
 android {
     defaultConfig {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -50,16 +49,15 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
         freeCompilerArgs += [
                 '-progressive',
                 '-Xexplicit-api=strict',
-                '-Xopt-in=kotlin.RequiresOptIn',
-                '-Xopt-in=io.getstream.chat.android.core.internal.InternalStreamChatApi',
+                '-opt-in=kotlin.RequiresOptIn',
+                '-opt-in=io.getstream.chat.android.core.internal.InternalStreamChatApi',
         ]
+        jvmTarget = JavaVersion.VERSION_11.toString()
     }
 }
 
 dependencies {
     api project(':stream-chat-android-core')
-    api project(":libraries:logging:stream-logger-android")
-    debugApi project(":libraries:logging:stream-logger-android-init")
 
     implementation Dependencies.kotlinReflect
 
@@ -72,6 +70,11 @@ dependencies {
     implementation Dependencies.coroutinesCore
     implementation Dependencies.coroutinesAndroid
     implementation Dependencies.retrofit
+    implementation Dependencies.streamLog
+    implementation Dependencies.streamLogAndroid
+    debugImplementation Dependencies.streamLogAndroidFile
+    implementation Dependencies.streamPushDelegate
+    api Dependencies.streamPushPermissions
     implementation Dependencies.moshi
     implementation Dependencies.retrofitMoshiConverter
     ksp Dependencies.moshiCodegen
@@ -84,6 +87,8 @@ dependencies {
     // Tests
     testImplementation project(':stream-chat-android-test')
     testImplementation project(":stream-chat-android-client-test")
+    testImplementation testFixtures(project(":stream-chat-android-core"))
+    testImplementation Dependencies.streamResult
     testImplementation Dependencies.androidxTestJunit
     testImplementation Dependencies.androidxLifecycleTesting
     testImplementation Dependencies.junitJupiterApi
@@ -93,7 +98,6 @@ dependencies {
 
     testImplementation Dependencies.json
     testImplementation Dependencies.kluent
-    testImplementation Dependencies.kfixture
     testImplementation Dependencies.mockito
     testImplementation Dependencies.mockitoKotlin
     testImplementation Dependencies.okhttpMockWebserver

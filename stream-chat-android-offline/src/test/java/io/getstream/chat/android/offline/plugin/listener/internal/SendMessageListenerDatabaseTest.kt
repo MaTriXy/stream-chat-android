@@ -16,14 +16,14 @@
 
 package io.getstream.chat.android.offline.plugin.listener.internal
 
-import io.getstream.chat.android.client.errors.ChatError
 import io.getstream.chat.android.client.extensions.internal.users
 import io.getstream.chat.android.client.persistance.repository.MessageRepository
 import io.getstream.chat.android.client.persistance.repository.UserRepository
-import io.getstream.chat.android.client.test.randomMessage
-import io.getstream.chat.android.client.utils.Result
-import io.getstream.chat.android.client.utils.SyncStatus
-import io.getstream.chat.android.test.randomString
+import io.getstream.chat.android.models.SyncStatus
+import io.getstream.chat.android.randomMessage
+import io.getstream.chat.android.randomString
+import io.getstream.result.Error
+import io.getstream.result.Result
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
@@ -51,7 +51,7 @@ internal class SendMessageListenerDatabaseTest {
         val testMessage = randomMessage(syncStatus = SyncStatus.IN_PROGRESS)
 
         sendMessageListenerDatabase.onMessageSendResult(
-            result = Result.success(testMessage),
+            result = Result.Success(testMessage),
             channelType = randomString(),
             channelId = randomString(),
             message = testMessage,
@@ -62,7 +62,7 @@ internal class SendMessageListenerDatabaseTest {
             argThat { message ->
                 message.id == testMessage.id && message.syncStatus == SyncStatus.COMPLETED
             },
-            eq(false)
+            eq(false),
         )
     }
 
@@ -73,7 +73,7 @@ internal class SendMessageListenerDatabaseTest {
         val testMessage = randomMessage(syncStatus = SyncStatus.IN_PROGRESS)
 
         sendMessageListenerDatabase.onMessageSendResult(
-            result = Result.error(ChatError()),
+            result = Result.Failure(Error.GenericError("")),
             channelType = randomString(),
             channelId = randomString(),
             message = testMessage,
@@ -84,7 +84,7 @@ internal class SendMessageListenerDatabaseTest {
             argThat { message ->
                 message.id == testMessage.id && message.syncStatus == SyncStatus.SYNC_NEEDED
             },
-            eq(false)
+            eq(false),
         )
     }
 
@@ -95,7 +95,7 @@ internal class SendMessageListenerDatabaseTest {
         val testMessage = randomMessage(syncStatus = SyncStatus.IN_PROGRESS)
 
         sendMessageListenerDatabase.onMessageSendResult(
-            result = Result.error(ChatError()),
+            result = Result.Failure(Error.GenericError("")),
             channelType = randomString(),
             channelId = randomString(),
             message = testMessage,
@@ -104,7 +104,7 @@ internal class SendMessageListenerDatabaseTest {
         verify(userRepository, never()).insertUsers(testMessage.users())
         verify(messageRepository, never()).insertMessage(
             argThat { message -> message.id == testMessage.id },
-            eq(false)
+            eq(false),
         )
     }
 }

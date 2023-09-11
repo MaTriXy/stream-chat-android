@@ -67,7 +67,7 @@ import io.getstream.chat.android.client.api2.model.dto.UserStartWatchingEventDto
 import io.getstream.chat.android.client.api2.model.dto.UserStopWatchingEventDto
 import io.getstream.chat.android.client.api2.model.dto.UserUpdatedEventDto
 import io.getstream.chat.android.client.api2.model.dto.utils.internal.ExactDate
-import io.getstream.chat.android.client.models.EventType
+import io.getstream.chat.android.models.EventType
 import java.lang.reflect.Type
 
 internal class EventAdapterFactory : JsonAdapter.Factory {
@@ -200,7 +200,7 @@ internal class EventDtoAdapter(
                     type = type ?: EventType.UNKNOWN,
                     created_at = moshi.adapter(ExactDate::class.java).fromJsonValue(map["created_at"])!!,
                     user = moshi.adapter(DownstreamUserDto::class.java).fromJsonValue(map["user"]),
-                    rawData = map
+                    rawData = map,
                 )
         }
 

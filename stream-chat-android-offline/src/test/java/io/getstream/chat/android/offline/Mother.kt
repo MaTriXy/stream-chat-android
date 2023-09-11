@@ -18,14 +18,12 @@ package io.getstream.chat.android.offline
 
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
-import io.getstream.chat.android.client.api.models.FilterObject
-import io.getstream.chat.android.client.api.models.NeutralFilterObject
-import io.getstream.chat.android.client.api.models.querysort.QuerySortByField
-import io.getstream.chat.android.client.api.models.querysort.QuerySorter
-import io.getstream.chat.android.client.extensions.uploadId
-import io.getstream.chat.android.client.models.Attachment
-import io.getstream.chat.android.client.models.Channel
-import io.getstream.chat.android.client.utils.SyncStatus
+import io.getstream.chat.android.models.Channel
+import io.getstream.chat.android.models.FilterObject
+import io.getstream.chat.android.models.NeutralFilterObject
+import io.getstream.chat.android.models.SyncStatus
+import io.getstream.chat.android.models.querysort.QuerySortByField
+import io.getstream.chat.android.models.querysort.QuerySorter
 import io.getstream.chat.android.offline.repository.database.internal.ChatDatabase
 import io.getstream.chat.android.offline.repository.domain.message.attachment.internal.AttachmentEntity
 import io.getstream.chat.android.offline.repository.domain.message.internal.MessageEntity
@@ -33,27 +31,15 @@ import io.getstream.chat.android.offline.repository.domain.message.internal.Mess
 import io.getstream.chat.android.offline.repository.domain.queryChannels.internal.QueryChannelsEntity
 import io.getstream.chat.android.offline.repository.domain.reaction.internal.ReactionEntity
 import io.getstream.chat.android.offline.repository.domain.user.internal.UserEntity
-import io.getstream.chat.android.test.positiveRandomInt
-import io.getstream.chat.android.test.randomBoolean
-import io.getstream.chat.android.test.randomCID
-import io.getstream.chat.android.test.randomDate
-import io.getstream.chat.android.test.randomFile
-import io.getstream.chat.android.test.randomInt
-import io.getstream.chat.android.test.randomString
+import io.getstream.chat.android.randomBoolean
+import io.getstream.chat.android.randomCID
+import io.getstream.chat.android.randomDate
+import io.getstream.chat.android.randomInt
+import io.getstream.chat.android.randomString
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asExecutor
 import java.util.Date
-import java.util.UUID
 import java.util.concurrent.Executors
-
-internal fun randomAttachmentsWithFile(
-    size: Int = positiveRandomInt(10),
-    creationFunction: (Int) -> Attachment = {
-        Attachment(upload = randomFile()).apply {
-            uploadId = "upload_id_${UUID.randomUUID()}"
-        }
-    },
-): List<Attachment> = (1..size).map(creationFunction)
 
 internal fun randomUserEntity(
     id: String = randomString(),

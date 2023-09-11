@@ -17,21 +17,26 @@
 package io.getstream.chat.android.ui
 
 import android.content.Context
-import com.getstream.sdk.chat.images.ImageHeadersProvider
-import com.getstream.sdk.chat.images.StreamImageLoader
-import com.getstream.sdk.chat.utils.DateFormatter
-import io.getstream.chat.android.ui.avatar.AvatarBitmapFactory
-import io.getstream.chat.android.ui.common.ChannelNameFormatter
-import io.getstream.chat.android.ui.common.navigation.ChatNavigator
-import io.getstream.chat.android.ui.common.style.ChatFonts
-import io.getstream.chat.android.ui.common.style.ChatFontsImpl
-import io.getstream.chat.android.ui.common.style.ChatStyle
-import io.getstream.chat.android.ui.message.composer.attachment.AttachmentPreviewFactoryManager
-import io.getstream.chat.android.ui.message.list.adapter.viewholder.attachment.AttachmentFactoryManager
-import io.getstream.chat.android.ui.message.list.adapter.viewholder.attachment.DefaultQuotedAttachmentMessageFactory
-import io.getstream.chat.android.ui.message.list.adapter.viewholder.attachment.QuotedAttachmentFactoryManager
-import io.getstream.chat.android.ui.transformer.AutoLinkableTextTransformer
-import io.getstream.chat.android.ui.transformer.ChatMessageTextTransformer
+import io.getstream.chat.android.ui.common.helper.DateFormatter
+import io.getstream.chat.android.ui.common.helper.ImageHeadersProvider
+import io.getstream.chat.android.ui.common.images.internal.StreamImageLoader
+import io.getstream.chat.android.ui.common.images.resizing.StreamCdnImageResizing
+import io.getstream.chat.android.ui.common.utils.ChannelNameFormatter
+import io.getstream.chat.android.ui.feature.messages.composer.attachment.preview.AttachmentPreviewFactoryManager
+import io.getstream.chat.android.ui.feature.messages.list.adapter.viewholder.attachment.AttachmentFactoryManager
+import io.getstream.chat.android.ui.feature.messages.list.adapter.viewholder.attachment.DefaultQuotedAttachmentMessageFactory
+import io.getstream.chat.android.ui.feature.messages.list.adapter.viewholder.attachment.QuotedAttachmentFactoryManager
+import io.getstream.chat.android.ui.font.ChatFonts
+import io.getstream.chat.android.ui.font.ChatFontsImpl
+import io.getstream.chat.android.ui.font.ChatStyle
+import io.getstream.chat.android.ui.helper.CurrentUserProvider
+import io.getstream.chat.android.ui.helper.MessagePreviewFormatter
+import io.getstream.chat.android.ui.helper.MimeTypeIconProvider
+import io.getstream.chat.android.ui.helper.MimeTypeIconProviderImpl
+import io.getstream.chat.android.ui.helper.SupportedReactions
+import io.getstream.chat.android.ui.helper.transformer.AutoLinkableTextTransformer
+import io.getstream.chat.android.ui.helper.transformer.ChatMessageTextTransformer
+import io.getstream.chat.android.ui.navigation.ChatNavigator
 import io.getstream.chat.android.ui.utils.lazyVar
 
 /**
@@ -79,12 +84,6 @@ public object ChatUI {
             textView.text = messageItem.message.text
         }
     }
-
-    /**
-     * Allows intercepting and providing custom bitmap displayed with AvatarView.
-     */
-    @JvmStatic
-    public var avatarBitmapFactory: AvatarBitmapFactory by lazyVar { AvatarBitmapFactory(appContext) }
 
     /**
      * Allows overriding default set of message reactions available.
@@ -139,7 +138,7 @@ public object ChatUI {
     @JvmStatic
     public var quotedAttachmentFactoryManager: QuotedAttachmentFactoryManager by lazyVar {
         QuotedAttachmentFactoryManager(
-            listOf(DefaultQuotedAttachmentMessageFactory())
+            listOf(DefaultQuotedAttachmentMessageFactory()),
         )
     }
 
@@ -150,9 +149,17 @@ public object ChatUI {
     public var currentUserProvider: CurrentUserProvider = CurrentUserProvider.defaultCurrentUserProvider()
 
     /**
-     * Configures if we show a thread separator when threads are empty or not. Adds the
-     * separator item when value is `true`.
+     * Whether thumbnails for video attachments will be displayed in previews.
      */
     @JvmStatic
-    public var showThreadSeparatorInEmptyThread: Boolean = false
+    public var videoThumbnailsEnabled: Boolean = true
+
+    /**
+     * Sets the strategy for resizing images hosted on Stream's CDN. Disabled by default,
+     * set [StreamCdnImageResizing.imageResizingEnabled] to true if you wish to enable resizing images. Note that
+     * resizing applies only to images hosted on Stream's CDN which contain the original width (ow) and height (oh)
+     * query parameters.
+     */
+    @JvmStatic
+    public var streamCdnImageResizing: StreamCdnImageResizing = StreamCdnImageResizing.defaultStreamCdnImageResizing()
 }

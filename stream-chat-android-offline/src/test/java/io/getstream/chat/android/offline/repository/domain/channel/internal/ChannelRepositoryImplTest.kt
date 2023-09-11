@@ -18,9 +18,9 @@
 
 package io.getstream.chat.android.offline.repository.domain.channel.internal
 
-import io.getstream.chat.android.client.test.randomChannel
-import io.getstream.chat.android.client.test.randomMessage
-import io.getstream.chat.android.client.test.randomUser
+import io.getstream.chat.android.randomChannel
+import io.getstream.chat.android.randomMessage
+import io.getstream.chat.android.randomUser
 import io.getstream.chat.android.test.TestCoroutineRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
@@ -45,14 +45,14 @@ internal class ChannelRepositoryImplTest {
         DatabaseChannelRepository(
             channelDao,
             { randomUser() },
-            { randomMessage() }
+            { randomMessage() },
         )
 
     @Test
     fun `Given channel without messages in DB, Should insert channel with updated last message`() = runTest {
         val channel = randomChannel(messages = emptyList())
         val lastMessage = randomMessage(createdAt = Date())
-        whenever(channelDao.select(listOf("cid"))) doReturn listOf(channel.toEntity())
+        whenever(channelDao.select(listOf("cid"))) doReturn listOf(channel.toEntity(null, null))
 
         channelRepository.updateLastMessageForChannel("cid", lastMessage)
 
@@ -60,7 +60,7 @@ internal class ChannelRepositoryImplTest {
             argThat { channelEntity ->
                 channelEntity.lastMessageAt == lastMessage.createdAt &&
                     channelEntity.lastMessageId == lastMessage.id
-            }
+            },
         )
     }
 
@@ -71,7 +71,7 @@ internal class ChannelRepositoryImplTest {
         val outdatedMessage = randomMessage(id = "messageId1", createdAt = before)
         val newLastMessage = randomMessage(id = "messageId2", createdAt = after)
         val channel = randomChannel(messages = listOf(outdatedMessage), lastMessageAt = before)
-        whenever(channelDao.select(cid = "cid")) doReturn channel.toEntity()
+        whenever(channelDao.select(cid = "cid")) doReturn channel.toEntity(null, null)
 
         channelRepository.updateLastMessageForChannel("cid", newLastMessage)
 
@@ -79,7 +79,7 @@ internal class ChannelRepositoryImplTest {
             argThat { channelEntity ->
                 channelEntity.lastMessageAt == after &&
                     channelEntity.lastMessageId == newLastMessage.id
-            }
+            },
         )
     }
 
@@ -92,7 +92,7 @@ internal class ChannelRepositoryImplTest {
         val outdatedMessage = randomMessage(id = "messageId1", createdAt = before)
         val newLastMessage = randomMessage(id = "messageId2", createdAt = after)
         val channel = randomChannel(messages = listOf(newLastMessage), lastMessageAt = after)
-        whenever(channelDao.select(cid = "cid")) doReturn channel.toEntity()
+        whenever(channelDao.select(cid = "cid")) doReturn channel.toEntity(newLastMessage.id, newLastMessage.createdAt)
 
         channelRepository.updateLastMessageForChannel("cid", outdatedMessage)
 

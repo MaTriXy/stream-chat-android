@@ -29,26 +29,26 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
-import com.getstream.sdk.chat.model.ModelType
-import io.getstream.chat.android.client.models.ChannelCapabilities
-import io.getstream.chat.android.client.models.Message
-import io.getstream.chat.android.client.models.User
-import io.getstream.chat.android.client.utils.SyncStatus
-import io.getstream.chat.android.common.state.Copy
-import io.getstream.chat.android.common.state.Delete
-import io.getstream.chat.android.common.state.Edit
-import io.getstream.chat.android.common.state.Flag
-import io.getstream.chat.android.common.state.Pin
-import io.getstream.chat.android.common.state.Reply
-import io.getstream.chat.android.common.state.Resend
-import io.getstream.chat.android.common.state.ThreadReply
+import io.getstream.chat.android.client.utils.attachment.isGiphy
+import io.getstream.chat.android.client.utils.message.isGiphy
 import io.getstream.chat.android.compose.R
 import io.getstream.chat.android.compose.previewdata.PreviewMessageData
 import io.getstream.chat.android.compose.previewdata.PreviewUserData
 import io.getstream.chat.android.compose.state.messageoptions.MessageOptionItemState
 import io.getstream.chat.android.compose.ui.theme.ChatTheme
-import io.getstream.chat.android.compose.ui.util.isGiphy
 import io.getstream.chat.android.compose.util.extensions.toSet
+import io.getstream.chat.android.models.ChannelCapabilities
+import io.getstream.chat.android.models.Message
+import io.getstream.chat.android.models.SyncStatus
+import io.getstream.chat.android.models.User
+import io.getstream.chat.android.ui.common.state.messages.Copy
+import io.getstream.chat.android.ui.common.state.messages.Delete
+import io.getstream.chat.android.ui.common.state.messages.Edit
+import io.getstream.chat.android.ui.common.state.messages.Flag
+import io.getstream.chat.android.ui.common.state.messages.Pin
+import io.getstream.chat.android.ui.common.state.messages.Reply
+import io.getstream.chat.android.ui.common.state.messages.Resend
+import io.getstream.chat.android.ui.common.state.messages.ThreadReply
 import io.getstream.chat.android.uiutils.extension.hasLink
 
 /**
@@ -68,7 +68,7 @@ public fun MessageOptions(
     itemContent: @Composable ColumnScope.(MessageOptionItemState) -> Unit = { option ->
         DefaultMessageOptionItem(
             option = option,
-            onMessageOptionSelected = onMessageOptionSelected
+            onMessageOptionSelected = onMessageOptionSelected,
         )
     },
 ) {
@@ -99,9 +99,9 @@ internal fun DefaultMessageOptionItem(
             .clickable(
                 onClick = { onMessageOptionSelected(option) },
                 interactionSource = remember { MutableInteractionSource() },
-                indication = rememberRipple()
+                indication = rememberRipple(),
             ),
-        option = option
+        option = option,
     )
 }
 
@@ -113,7 +113,7 @@ internal fun DefaultMessageOptionItem(
  * @param currentUser Current user, used to expose different states for messages.
  * @param isInThread If the message is in a thread or not, to block off some options.
  * @param ownCapabilities Set of capabilities the user is given for the current channel.
- * For a full list @see [io.getstream.chat.android.client.models.ChannelCapabilities].
+ * For a full list @see [ChannelCapabilities].
  */
 @Composable
 public fun defaultMessageOptionsState(
@@ -129,7 +129,7 @@ public fun defaultMessageOptionsState(
     val selectedMessageUserId = selectedMessage.user.id
 
     val isTextOnlyMessage = selectedMessage.text.isNotEmpty() && selectedMessage.attachments.isEmpty()
-    val hasLinks = selectedMessage.attachments.any { it.hasLink() && it.type != ModelType.attach_giphy }
+    val hasLinks = selectedMessage.attachments.any { it.hasLink() && !it.isGiphy() }
     val isOwnMessage = selectedMessageUserId == currentUser?.id
     val isMessageSynced = selectedMessage.syncStatus == SyncStatus.COMPLETED
     val isMessageFailed = selectedMessage.syncStatus == SyncStatus.FAILED_PERMANENTLY
@@ -152,7 +152,9 @@ public fun defaultMessageOptionsState(
                 titleColor = ChatTheme.colors.textHighEmphasis,
                 iconColor = ChatTheme.colors.textLowEmphasis,
             )
-        } else null,
+        } else {
+            null
+        },
         if (isMessageSynced && canQuoteMessage) {
             MessageOptionItemState(
                 title = R.string.stream_compose_reply,
@@ -161,7 +163,9 @@ public fun defaultMessageOptionsState(
                 titleColor = ChatTheme.colors.textHighEmphasis,
                 iconColor = ChatTheme.colors.textLowEmphasis,
             )
-        } else null,
+        } else {
+            null
+        },
         if (!isInThread && isMessageSynced && canThreadReply) {
             MessageOptionItemState(
                 title = R.string.stream_compose_thread_reply,
@@ -170,7 +174,9 @@ public fun defaultMessageOptionsState(
                 titleColor = ChatTheme.colors.textHighEmphasis,
                 iconColor = ChatTheme.colors.textLowEmphasis,
             )
-        } else null,
+        } else {
+            null
+        },
         if (isTextOnlyMessage || hasLinks) {
             MessageOptionItemState(
                 title = R.string.stream_compose_copy_message,
@@ -179,7 +185,9 @@ public fun defaultMessageOptionsState(
                 titleColor = ChatTheme.colors.textHighEmphasis,
                 iconColor = ChatTheme.colors.textLowEmphasis,
             )
-        } else null,
+        } else {
+            null
+        },
         if (((isOwnMessage && canEditOwnMessage) || canEditAnyMessage) && !selectedMessage.isGiphy()) {
             MessageOptionItemState(
                 title = R.string.stream_compose_edit_message,
@@ -188,7 +196,9 @@ public fun defaultMessageOptionsState(
                 titleColor = ChatTheme.colors.textHighEmphasis,
                 iconColor = ChatTheme.colors.textLowEmphasis,
             )
-        } else null,
+        } else {
+            null
+        },
         if (!isOwnMessage) {
             MessageOptionItemState(
                 title = R.string.stream_compose_flag_message,
@@ -197,25 +207,31 @@ public fun defaultMessageOptionsState(
                 titleColor = ChatTheme.colors.textHighEmphasis,
                 iconColor = ChatTheme.colors.textLowEmphasis,
             )
-        } else null,
+        } else {
+            null
+        },
         if (isMessageSynced && canPinMessage) {
             MessageOptionItemState(
                 title = if (selectedMessage.pinned) R.string.stream_compose_unpin_message else R.string.stream_compose_pin_message,
                 action = Pin(selectedMessage),
                 iconPainter = painterResource(id = if (selectedMessage.pinned) R.drawable.stream_compose_ic_unpin_message else R.drawable.stream_compose_ic_pin_message),
                 iconColor = ChatTheme.colors.textLowEmphasis,
-                titleColor = ChatTheme.colors.textHighEmphasis
+                titleColor = ChatTheme.colors.textHighEmphasis,
             )
-        } else null,
+        } else {
+            null
+        },
         if (canDeleteAnyMessage || (isOwnMessage && canDeleteOwnMessage)) {
             MessageOptionItemState(
                 title = R.string.stream_compose_delete_message,
                 iconPainter = painterResource(R.drawable.stream_compose_ic_delete),
                 action = Delete(selectedMessage),
                 iconColor = ChatTheme.colors.errorAccent,
-                titleColor = ChatTheme.colors.errorAccent
+                titleColor = ChatTheme.colors.errorAccent,
             )
-        } else null,
+        } else {
+            null
+        },
     )
 }
 
@@ -274,14 +290,14 @@ private fun MessageOptionsPreview(
     ChatTheme {
         val selectedMMessage = PreviewMessageData.message1.copy(
             user = messageUser,
-            syncStatus = syncStatus
+            syncStatus = syncStatus,
         )
 
         val messageOptionsStateList = defaultMessageOptionsState(
             selectedMessage = selectedMMessage,
             currentUser = currentUser,
             isInThread = false,
-            ownCapabilities = ChannelCapabilities.toSet()
+            ownCapabilities = ChannelCapabilities.toSet(),
         )
 
         MessageOptions(options = messageOptionsStateList, onMessageOptionSelected = {})

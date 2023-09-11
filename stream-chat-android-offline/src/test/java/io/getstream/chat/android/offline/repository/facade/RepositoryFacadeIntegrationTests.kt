@@ -17,13 +17,13 @@
 package io.getstream.chat.android.offline.repository.facade
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import io.getstream.chat.android.client.models.Message
-import io.getstream.chat.android.client.test.randomChannelInfo
-import io.getstream.chat.android.client.test.randomMessage
-import io.getstream.chat.android.client.test.randomReaction
-import io.getstream.chat.android.client.test.randomUser
+import io.getstream.chat.android.models.Message
 import io.getstream.chat.android.offline.integration.BaseRepositoryFacadeIntegrationTest
-import io.getstream.chat.android.test.randomString
+import io.getstream.chat.android.randomChannelInfo
+import io.getstream.chat.android.randomMessage
+import io.getstream.chat.android.randomReaction
+import io.getstream.chat.android.randomString
+import io.getstream.chat.android.randomUser
 import kotlinx.coroutines.test.runTest
 import org.amshove.kluent.shouldBeEmpty
 import org.amshove.kluent.shouldBeEqualTo
@@ -59,14 +59,14 @@ internal class RepositoryFacadeIntegrationTests : BaseRepositoryFacadeIntegratio
                 // ignoring fields that are not persisted on purpose
                 totalUnreadCount = 0,
                 unreadChannels = 0,
-                online = false
+                online = false,
             ),
             pinnedBy = randomUser(
                 // ignoring fields that are not persisted on purpose
                 totalUnreadCount = 0,
                 unreadChannels = 0,
-                online = false
-            )
+                online = false,
+            ),
         )
 
         repositoryFacade.insertMessages(listOf(message), cache = false)
@@ -84,13 +84,13 @@ internal class RepositoryFacadeIntegrationTests : BaseRepositoryFacadeIntegratio
                 // ignoring fields that are not persisted on purpose
                 totalUnreadCount = 0,
                 unreadChannels = 0,
-                online = false
+                online = false,
             )
             val theirsReaction = randomReaction(
                 messageId = messageId,
                 user = theirsUser,
                 userId = theirsUser.id,
-                deletedAt = null
+                deletedAt = null,
 
             )
             val message = randomMessage(
@@ -116,7 +116,7 @@ internal class RepositoryFacadeIntegrationTests : BaseRepositoryFacadeIntegratio
                 messageId = messageId,
                 user = currentUser,
                 userId = currentUser.id,
-                deletedAt = Date()
+                deletedAt = Date(),
 
             )
             val message = randomMessage(

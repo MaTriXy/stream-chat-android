@@ -23,27 +23,27 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.getstream.chat.android.client.ChatClient
-import io.getstream.chat.android.client.api.models.FilterObject
 import io.getstream.chat.android.client.api.models.QueryChannelsRequest
-import io.getstream.chat.android.client.api.models.querysort.QuerySorter
-import io.getstream.chat.android.client.call.toUnitCall
-import io.getstream.chat.android.client.models.Channel
-import io.getstream.chat.android.client.models.ChannelMute
-import io.getstream.chat.android.client.models.ConnectionState
-import io.getstream.chat.android.client.models.Filters
-import io.getstream.chat.android.client.models.User
 import io.getstream.chat.android.compose.state.QueryConfig
-import io.getstream.chat.android.compose.state.channels.list.Cancel
-import io.getstream.chat.android.compose.state.channels.list.ChannelAction
 import io.getstream.chat.android.compose.state.channels.list.ChannelItemState
 import io.getstream.chat.android.compose.state.channels.list.ChannelsState
-import io.getstream.chat.android.offline.event.handler.chat.factory.ChatEventHandlerFactory
-import io.getstream.chat.android.offline.extensions.globalState
-import io.getstream.chat.android.offline.extensions.queryChannelsAsState
-import io.getstream.chat.android.offline.plugin.state.querychannels.ChannelsStateData
-import io.getstream.chat.android.offline.plugin.state.querychannels.QueryChannelsState
+import io.getstream.chat.android.models.Channel
+import io.getstream.chat.android.models.ChannelMute
+import io.getstream.chat.android.models.ConnectionState
+import io.getstream.chat.android.models.FilterObject
+import io.getstream.chat.android.models.Filters
+import io.getstream.chat.android.models.User
+import io.getstream.chat.android.models.querysort.QuerySorter
+import io.getstream.chat.android.state.event.handler.chat.factory.ChatEventHandlerFactory
+import io.getstream.chat.android.state.extensions.globalState
+import io.getstream.chat.android.state.extensions.queryChannelsAsState
+import io.getstream.chat.android.state.plugin.state.querychannels.ChannelsStateData
+import io.getstream.chat.android.state.plugin.state.querychannels.QueryChannelsState
+import io.getstream.chat.android.ui.common.state.channels.actions.Cancel
+import io.getstream.chat.android.ui.common.state.channels.actions.ChannelAction
 import io.getstream.chat.android.uiutils.extension.defaultChannelListFilter
-import io.getstream.logging.StreamLog
+import io.getstream.log.taggedLogger
+import io.getstream.result.call.toUnitCall
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -82,7 +82,7 @@ public class ChannelListViewModel(
      */
     private val filterFlow: MutableStateFlow<FilterObject?> = MutableStateFlow(initialFilters)
 
-    private val logger = StreamLog.getLogger("ChannelListVM")
+    private val logger by taggedLogger("ChannelListVM")
 
     /**
      * State flow that keeps the value of the current [QuerySorter] for channels.
@@ -222,10 +222,10 @@ public class ChannelListViewModel(
                 Filters.or(
                     Filters.and(
                         Filters.autocomplete("member.user.name", searchQuery),
-                        Filters.notExists("name")
+                        Filters.notExists("name"),
                     ),
-                    Filters.autocomplete("name", searchQuery)
-                )
+                    Filters.autocomplete("name", searchQuery),
+                ),
             )
         } else {
             filter
@@ -248,7 +248,7 @@ public class ChannelListViewModel(
                         ChannelsStateData.Loading,
                         -> channelsState.copy(
                             isLoading = true,
-                            searchQuery = searchQuery
+                            searchQuery = searchQuery,
                         ).also {
                             logger.d { "Loading state for query" }
                         }
@@ -257,7 +257,7 @@ public class ChannelListViewModel(
                             channelsState.copy(
                                 isLoading = false,
                                 channelItems = emptyList(),
-                                searchQuery = searchQuery
+                                searchQuery = searchQuery,
                             )
                         }
                         is ChannelsStateData.Result -> {
@@ -267,7 +267,7 @@ public class ChannelListViewModel(
                                 channelItems = createChannelItems(state.channels, channelMutes),
                                 isLoadingMore = false,
                                 endOfChannels = queryChannelsState.endOfChannels.value,
-                                searchQuery = searchQuery
+                                searchQuery = searchQuery,
                             )
                         }
                     }
@@ -323,7 +323,7 @@ public class ChannelListViewModel(
         if (chatClient.clientState.isOffline) return
         val currentConfig = QueryConfig(
             filters = filterFlow.value ?: return,
-            querySort = querySortFlow.value
+            querySort = querySortFlow.value,
         )
 
         channelsState = channelsState.copy(isLoadingMore = true)
@@ -332,7 +332,7 @@ public class ChannelListViewModel(
 
         currentQuery?.copy(
             filter = createQueryChannelsFilter(currentConfig.filters, searchQuery.value),
-            querySort = currentConfig.querySort
+            querySort = currentConfig.querySort,
         )?.let { queryChannelsRequest ->
             chatClient.queryChannels(queryChannelsRequest).enqueue()
         }
@@ -401,7 +401,7 @@ public class ChannelListViewModel(
     public fun leaveGroup(channel: Channel) {
         dismissChannelAction()
 
-        chatClient.getCurrentUser()?.let { user ->
+        chatClient.clientState.user.value?.let { user ->
             chatClient.channel(channel.type, channel.id).removeMembers(listOf(user.id)).enqueue()
         }
     }

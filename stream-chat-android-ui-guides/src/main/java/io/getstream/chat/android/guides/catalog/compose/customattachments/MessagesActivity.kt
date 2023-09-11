@@ -42,9 +42,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.android.material.datepicker.MaterialDatePicker
-import io.getstream.chat.android.client.models.Attachment
-import io.getstream.chat.android.common.state.MessageMode
-import io.getstream.chat.android.common.state.Reply
+import io.getstream.chat.android.compose.state.messages.attachments.StatefulStreamMediaRecorder
 import io.getstream.chat.android.compose.ui.attachments.StreamAttachmentFactories
 import io.getstream.chat.android.compose.ui.messages.MessagesScreen
 import io.getstream.chat.android.compose.ui.messages.composer.MessageComposer
@@ -57,13 +55,22 @@ import io.getstream.chat.android.compose.viewmodel.messages.MessagesViewModelFac
 import io.getstream.chat.android.guides.R
 import io.getstream.chat.android.guides.catalog.compose.customattachments.factory.dateAttachmentFactory
 import io.getstream.chat.android.guides.catalog.compose.customattachments.factory.quotedDateAttachmentFactory
-import java.text.DateFormat
+import io.getstream.chat.android.models.Attachment
+import io.getstream.chat.android.ui.common.state.messages.MessageMode
+import io.getstream.chat.android.ui.common.state.messages.Reply
+import io.getstream.sdk.chat.audio.recording.DefaultStreamMediaRecorder
+import io.getstream.sdk.chat.audio.recording.StreamMediaRecorder
+import java.text.SimpleDateFormat
 import java.util.Date
 
 /**
  * An Activity representing a self-contained chat screen with custom attachment factories.
  */
 class MessagesActivity : AppCompatActivity() {
+
+    // TODO add this and related entries to docs when documentation effort occurs
+    private val streamMediaRecorder: StreamMediaRecorder by lazy { DefaultStreamMediaRecorder(applicationContext) }
+    private val statefulStreamMediaRecorder by lazy { StatefulStreamMediaRecorder(streamMediaRecorder) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -78,11 +85,11 @@ class MessagesActivity : AppCompatActivity() {
         setContent {
             ChatTheme(
                 attachmentFactories = customFactories + defaultFactories,
-                quotedAttachmentFactories = customQuotedFactories + defaultQuotedFactories
+                quotedAttachmentFactories = customQuotedFactories + defaultQuotedFactories,
             ) {
                 CustomMessagesScreen(
                     channelId = channelId,
-                    onBackPressed = { finish() }
+                    onBackPressed = { finish() },
                 )
             }
         }
@@ -97,7 +104,7 @@ class MessagesActivity : AppCompatActivity() {
     @Composable
     fun CustomMessagesScreen(
         channelId: String,
-        onBackPressed: () -> Unit = {}
+        onBackPressed: () -> Unit = {},
     ) {
         val factory = MessagesViewModelFactory(
             context = LocalContext.current,
@@ -109,6 +116,7 @@ class MessagesActivity : AppCompatActivity() {
 
         val messageMode = messageListViewModel.messageMode
         val currentUser by messageListViewModel.user.collectAsState()
+        val connectionState by messageListViewModel.connectionState.collectAsState()
 
         BackHandler(enabled = true, onBack = onBackPressed)
 
@@ -121,25 +129,27 @@ class MessagesActivity : AppCompatActivity() {
                         channel = messageListViewModel.channel,
                         currentUser = currentUser,
                         messageMode = messageMode,
-                        onBackPressed = onBackPressed
+                        onBackPressed = onBackPressed,
+                        connectionState = connectionState,
                     )
                 },
                 bottomBar = {
+                    // 1
                     CustomMessageComposer(
                         viewModel = composerViewModel,
-                        onDateSelected = {
-                            val date = DateFormat
-                                .getDateInstance(DateFormat.LONG)
-                                .format(Date(it))
+                        onDateSelected = { date ->
+                            // 2
+                            val payload = SimpleDateFormat("MMMM dd, yyyy").format(Date(date))
                             val attachment = Attachment(
                                 type = "date",
-                                extraData = mutableMapOf("payload" to date)
+                                extraData = mutableMapOf("payload" to payload),
                             )
 
+                            // 3
                             composerViewModel.addSelectedAttachments(listOf(attachment))
-                        }
+                        },
                     )
-                }
+                },
             ) {
                 MessageList(
                     modifier = Modifier
@@ -153,7 +163,7 @@ class MessagesActivity : AppCompatActivity() {
                     },
                     onLongItemClick = {
                         composerViewModel.performMessageAction(Reply(it))
-                    }
+                    },
                 )
             }
         }
@@ -178,6 +188,8 @@ class MessagesActivity : AppCompatActivity() {
                 .fillMaxWidth()
                 .wrapContentHeight(),
             viewModel = viewModel,
+            // TODO add this and related entries to docs when documentation effort occurs
+            statefulStreamMediaRecorder = statefulStreamMediaRecorder,
             integrations = {
                 IconButton(
                     modifier = Modifier
@@ -187,7 +199,7 @@ class MessagesActivity : AppCompatActivity() {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_calendar),
                             contentDescription = null,
-                            tint = ChatTheme.colors.textLowEmphasis
+                            tint = ChatTheme.colors.textLowEmphasis,
                         )
                     },
                     onClick = {
@@ -200,9 +212,9 @@ class MessagesActivity : AppCompatActivity() {
                                     onDateSelected(it)
                                 }
                             }
-                    }
+                    },
                 )
-            }
+            },
         )
     }
 
@@ -216,7 +228,7 @@ class MessagesActivity : AppCompatActivity() {
          * @param channelId The id of the channel.
          * @return The [Intent] to start [MessagesActivity].
          */
-        fun getIntent(context: Context, channelId: String): Intent {
+        fun createIntent(context: Context, channelId: String): Intent {
             return Intent(context, MessagesActivity::class.java).apply {
                 putExtra(KEY_CHANNEL_ID, channelId)
             }

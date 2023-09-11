@@ -8,9 +8,13 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.dp
+import io.getstream.sdk.chat.audio.recording.StreamMediaRecorder
+import io.getstream.chat.android.compose.state.messages.attachments.StatefulStreamMediaRecorder
 import io.getstream.chat.android.compose.ui.messages.MessagesScreen
 import io.getstream.chat.android.compose.ui.theme.ChatTheme
 import io.getstream.chat.android.compose.ui.theme.StreamShapes
+import io.getstream.chat.android.compose.viewmodel.messages.MessagesViewModelFactory
+import io.getstream.sdk.chat.audio.recording.DefaultStreamMediaRecorder
 
 /**
  * [Usage](https://getstream.io/chat/docs/sdk/android/compose/general-customization/chat-theme/#usage)
@@ -19,16 +23,25 @@ private object ChatThemeUsageSnippet {
 
     class MessageListActivity : AppCompatActivity() {
 
+        //TODO add this and related entries to docs when documentation effort occurs
+        private val streamMediaRecorder: StreamMediaRecorder by lazy { DefaultStreamMediaRecorder(applicationContext) }
+        private val statefulStreamMediaRecorder by lazy { StatefulStreamMediaRecorder(streamMediaRecorder) }
+
         override fun onCreate(savedInstanceState: Bundle?) {
             super.onCreate(savedInstanceState)
 
             setContent {
                 ChatTheme {
                     MessagesScreen(
-                        channelId = "messaging:123",
-                        messageLimit = 30,
+                        viewModelFactory = MessagesViewModelFactory(
+                            context = this,
+                            channelId = "messaging:123",
+                            messageLimit = 30
+                        ),
                         onBackPressed = { finish() },
-                        onHeaderActionClick = {}
+                        onHeaderTitleClick = {},
+                        //TODO add this and related entries to docs when documentation effort occurs
+                        statefulStreamMediaRecorder = statefulStreamMediaRecorder,
                     )
                 }
             }
@@ -42,6 +55,10 @@ private object ChatThemeUsageSnippet {
 private object ChatThemeCustomizationSnippet {
 
     class MyActivity : AppCompatActivity() {
+
+        //TODO add this and related entries to docs when documentation effort occurs
+        private val streamMediaRecorder: StreamMediaRecorder by lazy { DefaultStreamMediaRecorder(applicationContext) }
+        private val statefulStreamMediaRecorder by lazy { StatefulStreamMediaRecorder(streamMediaRecorder) }
 
         override fun onCreate(savedInstanceState: Bundle?) {
             super.onCreate(savedInstanceState)
@@ -58,10 +75,14 @@ private object ChatThemeCustomizationSnippet {
                     )
                 ) {
                     MessagesScreen(
-                        channelId = "messaging:123",
-                        messageLimit = 30,
+                        viewModelFactory = MessagesViewModelFactory(
+                            context = this,
+                            channelId = "messaging:123",
+                        ),
                         onBackPressed = { finish() },
-                        onHeaderActionClick = {}
+                        onHeaderTitleClick = {},
+                        //TODO add this and related entries to docs when documentation effort occurs
+                        statefulStreamMediaRecorder = statefulStreamMediaRecorder,
                     )
                 }
             }

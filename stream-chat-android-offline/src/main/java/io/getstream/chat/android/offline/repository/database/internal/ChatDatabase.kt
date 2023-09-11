@@ -40,8 +40,11 @@ import io.getstream.chat.android.offline.repository.domain.channelconfig.interna
 import io.getstream.chat.android.offline.repository.domain.channelconfig.internal.CommandInnerEntity
 import io.getstream.chat.android.offline.repository.domain.message.attachment.internal.AttachmentDao
 import io.getstream.chat.android.offline.repository.domain.message.attachment.internal.AttachmentEntity
+import io.getstream.chat.android.offline.repository.domain.message.attachment.internal.ReplyAttachmentEntity
 import io.getstream.chat.android.offline.repository.domain.message.internal.MessageDao
 import io.getstream.chat.android.offline.repository.domain.message.internal.MessageInnerEntity
+import io.getstream.chat.android.offline.repository.domain.message.internal.ReplyMessageDao
+import io.getstream.chat.android.offline.repository.domain.message.internal.ReplyMessageInnerEntity
 import io.getstream.chat.android.offline.repository.domain.queryChannels.internal.QueryChannelsDao
 import io.getstream.chat.android.offline.repository.domain.queryChannels.internal.QueryChannelsEntity
 import io.getstream.chat.android.offline.repository.domain.reaction.internal.ReactionDao
@@ -55,7 +58,9 @@ import io.getstream.chat.android.offline.repository.domain.user.internal.UserEnt
     entities = [
         QueryChannelsEntity::class,
         MessageInnerEntity::class,
+        ReplyMessageInnerEntity::class,
         AttachmentEntity::class,
+        ReplyAttachmentEntity::class,
         UserEntity::class,
         ReactionEntity::class,
         ChannelEntity::class,
@@ -63,8 +68,8 @@ import io.getstream.chat.android.offline.repository.domain.user.internal.UserEnt
         CommandInnerEntity::class,
         SyncStateEntity::class,
     ],
-    version = 62,
-    exportSchema = false
+    version = 65,
+    exportSchema = false,
 )
 @TypeConverters(
     FilterObjectConverter::class,
@@ -77,13 +82,14 @@ import io.getstream.chat.android.offline.repository.domain.user.internal.UserEnt
     MessageSyncDescriptionConverter::class,
     MessageSyncTypeConverter::class,
     DateConverter::class,
-    MemberConverter::class
+    MemberConverter::class,
 )
 internal abstract class ChatDatabase : RoomDatabase() {
     abstract fun queryChannelsDao(): QueryChannelsDao
     abstract fun userDao(): UserDao
     abstract fun reactionDao(): ReactionDao
     abstract fun messageDao(): MessageDao
+    abstract fun replyMessageDao(): ReplyMessageDao
     abstract fun channelStateDao(): ChannelDao
     abstract fun channelConfigDao(): ChannelConfigDao
     abstract fun syncStateDao(): SyncStateDao
@@ -99,14 +105,14 @@ internal abstract class ChatDatabase : RoomDatabase() {
                     val db = Room.databaseBuilder(
                         context.applicationContext,
                         ChatDatabase::class.java,
-                        "stream_chat_database_$userId"
+                        "stream_chat_database_$userId",
                     ).fallbackToDestructiveMigration()
                         .addCallback(
                             object : Callback() {
                                 override fun onOpen(db: SupportSQLiteDatabase) {
                                     db.execSQL("PRAGMA synchronous = 1")
                                 }
-                            }
+                            },
                         )
                         .build()
                     INSTANCES[userId] = db

@@ -35,9 +35,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.getstream.chat.android.client.ChatClient
-import io.getstream.chat.android.client.api.models.querysort.QuerySortByField
-import io.getstream.chat.android.client.models.Channel
-import io.getstream.chat.android.client.models.User
 import io.getstream.chat.android.compose.R
 import io.getstream.chat.android.compose.previewdata.PreviewChannelData
 import io.getstream.chat.android.compose.previewdata.PreviewUserData
@@ -48,6 +45,9 @@ import io.getstream.chat.android.compose.ui.components.LoadingIndicator
 import io.getstream.chat.android.compose.ui.theme.ChatTheme
 import io.getstream.chat.android.compose.viewmodel.channels.ChannelListViewModel
 import io.getstream.chat.android.compose.viewmodel.channels.ChannelViewModelFactory
+import io.getstream.chat.android.models.Channel
+import io.getstream.chat.android.models.User
+import io.getstream.chat.android.models.querysort.QuerySortByField
 
 /**
  * Default ChannelList component, that relies on the [ChannelListViewModel] to load the data and
@@ -83,8 +83,8 @@ public fun ChannelList(
         ChannelViewModelFactory(
             ChatClient.instance(),
             QuerySortByField.descByName("last_updated"),
-            filters = null
-        )
+            filters = null,
+        ),
     ),
     lazyListState: LazyListState = rememberLazyListState(),
     onLastItemReached: () -> Unit = { viewModel.loadMore() },
@@ -95,7 +95,7 @@ public fun ChannelList(
     emptySearchContent: @Composable (String) -> Unit = { searchQuery ->
         DefaultChannelSearchEmptyContent(
             searchQuery = searchQuery,
-            modifier = modifier
+            modifier = modifier,
         )
     },
     helperContent: @Composable BoxScope.() -> Unit = {},
@@ -107,7 +107,7 @@ public fun ChannelList(
             channelItem = channelItem,
             currentUser = user,
             onChannelClick = onChannelClick,
-            onChannelLongClick = onChannelLongClick
+            onChannelLongClick = onChannelLongClick,
         )
     },
     divider: @Composable () -> Unit = { DefaultChannelItemDivider() },
@@ -129,7 +129,7 @@ public fun ChannelList(
         helperContent = helperContent,
         loadingMoreContent = loadingMoreContent,
         itemContent = itemContent,
-        divider = divider
+        divider = divider,
     )
 }
 
@@ -181,7 +181,7 @@ public fun ChannelList(
     emptySearchContent: @Composable (String) -> Unit = { searchQuery ->
         DefaultChannelSearchEmptyContent(
             searchQuery = searchQuery,
-            modifier = modifier
+            modifier = modifier,
         )
     },
     helperContent: @Composable BoxScope.() -> Unit = {},
@@ -191,7 +191,7 @@ public fun ChannelList(
             channelItem = channelItem,
             currentUser = currentUser,
             onChannelClick = onChannelClick,
-            onChannelLongClick = onChannelLongClick
+            onChannelLongClick = onChannelLongClick,
         )
     },
     divider: @Composable () -> Unit = { DefaultChannelItemDivider() },
@@ -209,7 +209,7 @@ public fun ChannelList(
             helperContent = helperContent,
             loadingMoreContent = loadingMoreContent,
             itemContent = itemContent,
-            divider = divider
+            divider = divider,
         )
         searchQuery.isNotEmpty() -> emptySearchContent(searchQuery)
         else -> emptyContent()
@@ -235,7 +235,7 @@ internal fun DefaultChannelItem(
         channelItem = channelItem,
         currentUser = currentUser,
         onChannelClick = onChannelClick,
-        onChannelLongClick = onChannelLongClick
+        onChannelLongClick = onChannelLongClick,
     )
 }
 
@@ -290,7 +290,7 @@ public fun DefaultChannelItemDivider() {
         modifier = Modifier
             .fillMaxWidth()
             .height(0.5.dp)
-            .background(color = ChatTheme.colors.borders)
+            .background(color = ChatTheme.colors.borders),
     )
 }
 
@@ -310,9 +310,9 @@ private fun ChannelListForContentStatePreview() {
                 ChannelItemState(channel = PreviewChannelData.channelWithMessages),
                 ChannelItemState(channel = PreviewChannelData.channelWithFewMembers),
                 ChannelItemState(channel = PreviewChannelData.channelWithManyMembers),
-                ChannelItemState(channel = PreviewChannelData.channelWithOnlineUser)
-            )
-        )
+                ChannelItemState(channel = PreviewChannelData.channelWithOnlineUser),
+            ),
+        ),
     )
 }
 
@@ -327,8 +327,8 @@ private fun ChannelListForEmptyStatePreview() {
     ChannelListPreview(
         ChannelsState(
             isLoading = false,
-            channelItems = emptyList()
-        )
+            channelItems = emptyList(),
+        ),
     )
 }
 
@@ -342,8 +342,8 @@ private fun ChannelListForEmptyStatePreview() {
 private fun ChannelListForLoadingStatePreview() {
     ChannelListPreview(
         ChannelsState(
-            isLoading = true
-        )
+            isLoading = true,
+        ),
     )
 }
 

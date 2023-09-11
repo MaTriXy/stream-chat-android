@@ -31,6 +31,7 @@ import coil.compose.AsyncImagePainter
 import io.getstream.chat.android.compose.R
 import io.getstream.chat.android.compose.ui.theme.ChatTheme
 import io.getstream.chat.android.compose.ui.util.rememberStreamImagePainter
+import io.getstream.chat.android.ui.common.images.resizing.applyStreamCdnImageResizingIfEnabled
 
 /**
  * An avatar that renders an image from the provided image URL. In case the image URL
@@ -65,7 +66,7 @@ public fun Avatar(
             shape = shape,
             painter = painterResource(id = R.drawable.stream_compose_preview_avatar),
             contentDescription = contentDescription,
-            onClick = onClick
+            onClick = onClick,
         )
         return
     }
@@ -76,14 +77,14 @@ public fun Avatar(
             shape = shape,
             textStyle = textStyle,
             onClick = onClick,
-            avatarOffset = initialsAvatarOffset
+            avatarOffset = initialsAvatarOffset,
         )
         return
     }
 
     val painter = rememberStreamImagePainter(
-        data = imageUrl,
-        placeholderPainter = painterResource(id = R.drawable.stream_compose_preview_avatar)
+        data = imageUrl.applyStreamCdnImageResizingIfEnabled(ChatTheme.streamCdnImageResizing),
+        placeholderPainter = painterResource(id = R.drawable.stream_compose_preview_avatar),
     )
 
     if (painter.state is AsyncImagePainter.State.Error) {
@@ -93,7 +94,7 @@ public fun Avatar(
             shape = shape,
             textStyle = textStyle,
             onClick = onClick,
-            avatarOffset = initialsAvatarOffset
+            avatarOffset = initialsAvatarOffset,
         )
     } else if (painter.state is AsyncImagePainter.State.Loading && placeholderPainter != null) {
         ImageAvatar(
@@ -101,7 +102,7 @@ public fun Avatar(
             shape = shape,
             painter = placeholderPainter,
             contentDescription = contentDescription,
-            onClick = onClick
+            onClick = onClick,
         )
     } else {
         ImageAvatar(
@@ -109,7 +110,7 @@ public fun Avatar(
             shape = shape,
             painter = painter,
             contentDescription = contentDescription,
-            onClick = onClick
+            onClick = onClick,
         )
     }
 }
@@ -124,7 +125,7 @@ public fun Avatar(
 private fun AvatarWithImageUrlPreview() {
     AvatarPreview(
         imageUrl = "https://sample.com/image.png",
-        initials = "JC"
+        initials = "JC",
     )
 }
 
@@ -138,7 +139,7 @@ private fun AvatarWithImageUrlPreview() {
 private fun AvatarWithoutImageUrlPreview() {
     AvatarPreview(
         imageUrl = "",
-        initials = "JC"
+        initials = "JC",
     )
 }
 
@@ -157,7 +158,7 @@ private fun AvatarPreview(
         Avatar(
             modifier = Modifier.size(36.dp),
             imageUrl = imageUrl,
-            initials = initials
+            initials = initials,
         )
     }
 }

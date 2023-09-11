@@ -21,12 +21,17 @@ import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import android.os.Build
-import io.getstream.logging.StreamLog
+import io.getstream.log.taggedLogger
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicBoolean
 
-internal class NetworkStateProvider(private val connectivityManager: ConnectivityManager) {
+internal class NetworkStateProvider(
+    private val scope: CoroutineScope,
+    private val connectivityManager: ConnectivityManager,
+) {
 
-    private val logger = StreamLog.getLogger("Chat:NetworkStateProvider")
+    private val logger by taggedLogger("Chat:NetworkStateProvider")
     private val lock: Any = Any()
     private val callback = object : ConnectivityManager.NetworkCallback() {
         override fun onAvailable(network: Network) {
@@ -51,15 +56,17 @@ internal class NetworkStateProvider(private val connectivityManager: Connectivit
     private val isRegistered: AtomicBoolean = AtomicBoolean(false)
 
     private fun notifyListenersIfNetworkStateChanged() {
-        val isNowConnected = isConnected()
-        if (!isConnected && isNowConnected) {
-            logger.i { "Network connected." }
-            isConnected = true
-            listeners.forEach { it.onConnected() }
-        } else if (isConnected && !isNowConnected) {
-            logger.i { "Network disconnected." }
-            isConnected = false
-            listeners.forEach { it.onDisconnected() }
+        scope.launch {
+            val isNowConnected = isConnected()
+            if (!isConnected && isNowConnected) {
+                logger.i { "Network connected." }
+                isConnected = true
+                listeners.forEach { it.onConnected() }
+            } else if (isConnected && !isNowConnected) {
+                logger.i { "Network disconnected." }
+                isConnected = false
+                listeners.forEach { it.onDisconnected() }
+            }
         }
     }
 
@@ -98,8 +105,8 @@ internal class NetworkStateProvider(private val connectivityManager: Connectivit
     }
 
     interface NetworkStateListener {
-        fun onConnected()
+        suspend fun onConnected()
 
-        fun onDisconnected()
+        suspend fun onDisconnected()
     }
 }

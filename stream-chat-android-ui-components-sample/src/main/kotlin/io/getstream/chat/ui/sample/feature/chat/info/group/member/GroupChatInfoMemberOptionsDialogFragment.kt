@@ -25,10 +25,10 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
-import io.getstream.chat.android.client.models.ChannelCapabilities
-import io.getstream.chat.android.client.models.User
-import io.getstream.chat.android.livedata.utils.EventObserver
-import io.getstream.chat.android.ui.common.extensions.getLastSeenText
+import io.getstream.chat.android.models.ChannelCapabilities
+import io.getstream.chat.android.models.User
+import io.getstream.chat.android.state.utils.EventObserver
+import io.getstream.chat.android.ui.utils.extensions.getLastSeenText
 import io.getstream.chat.ui.sample.R
 import io.getstream.chat.ui.sample.common.navigateSafely
 import io.getstream.chat.ui.sample.common.showToast
@@ -80,13 +80,13 @@ class GroupChatInfoMemberOptionsDialogFragment : BottomSheetDialogFragment() {
         binding.apply {
             userNameTextView.text = user.name
             lastSeenTextView.text = user.getLastSeenText(requireContext())
-            avatarView.setUserData(user)
+            userAvatarView.setUser(user)
             optionViewInfo.setOnOptionClickListener {
                 findNavController().navigateSafely(
                     GroupChatInfoFragmentDirections.actionOpenChatInfo(
                         userData = userData,
                         cid = viewModel.state.value!!.directChannelCid,
-                    )
+                    ),
                 )
                 dismiss()
             }
@@ -105,7 +105,7 @@ class GroupChatInfoMemberOptionsDialogFragment : BottomSheetDialogFragment() {
                         description = getString(
                             R.string.chat_group_info_user_remove_description,
                             user.name,
-                            channelName
+                            channelName,
                         ),
                         confirmText = getString(R.string.remove),
                         cancelText = getString(R.string.cancel),
@@ -151,7 +151,7 @@ class GroupChatInfoMemberOptionsDialogFragment : BottomSheetDialogFragment() {
                         dismiss()
                     }
                 }
-            }
+            },
         )
         viewModel.errorEvents.observe(
             viewLifecycleOwner,
@@ -159,7 +159,7 @@ class GroupChatInfoMemberOptionsDialogFragment : BottomSheetDialogFragment() {
                 when (it) {
                     is GroupChatInfoMemberOptionsViewModel.ErrorEvent.RemoveMemberError -> R.string.chat_group_info_error_remove_member
                 }.let(::showToast)
-            }
+            },
         )
     }
 

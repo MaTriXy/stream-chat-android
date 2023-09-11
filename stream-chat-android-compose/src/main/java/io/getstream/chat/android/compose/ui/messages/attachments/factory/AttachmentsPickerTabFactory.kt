@@ -17,9 +17,9 @@
 package io.getstream.chat.android.compose.ui.messages.attachments.factory
 
 import androidx.compose.runtime.Composable
-import com.getstream.sdk.chat.model.AttachmentMetaData
 import io.getstream.chat.android.compose.state.messages.attachments.AttachmentPickerItemState
 import io.getstream.chat.android.compose.state.messages.attachments.AttachmentsPickerMode
+import io.getstream.chat.android.ui.common.state.messages.composer.AttachmentMetaData
 
 /**
  * Holds the information required to add support for a [AttachmentsPickerMode] mode
@@ -39,7 +39,7 @@ public interface AttachmentsPickerTabFactory {
      * @param isSelected If the tab is selected.
      */
     @Composable
-    public fun pickerTabIcon(isEnabled: Boolean, isSelected: Boolean)
+    public fun PickerTabIcon(isEnabled: Boolean, isSelected: Boolean)
 
     /**
      * Emits a content for the tab.
@@ -50,7 +50,7 @@ public interface AttachmentsPickerTabFactory {
      * @param onAttachmentsSubmitted Handler to submit the selected attachments to the message composer.
      */
     @Composable
-    public fun pickerTabContent(
+    public fun PickerTabContent(
         attachments: List<AttachmentPickerItemState>,
         onAttachmentsChanged: (List<AttachmentPickerItemState>) -> Unit,
         onAttachmentItemSelected: (AttachmentPickerItemState) -> Unit,

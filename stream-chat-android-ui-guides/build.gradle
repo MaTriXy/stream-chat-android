@@ -33,7 +33,7 @@ android {
     }
 
     composeOptions {
-        kotlinCompilerExtensionVersion Versions.COMPOSE_COMPILER
+        kotlinCompilerExtensionVersion Versions.ANDROIDX_COMPOSE_COMPILER
     }
 
     lintOptions {
@@ -44,12 +44,14 @@ android {
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
     kotlinOptions {
         freeCompilerArgs += [
-                '-Xopt-in=kotlin.RequiresOptIn',
+                '-opt-in=kotlin.RequiresOptIn',
         ]
     }
 }
 
 dependencies {
+    implementation project(":stream-chat-android-state")
+    implementation project(":stream-chat-android-offline")
     implementation project(":stream-chat-android-ui-components")
     implementation project(":stream-chat-android-compose")
 

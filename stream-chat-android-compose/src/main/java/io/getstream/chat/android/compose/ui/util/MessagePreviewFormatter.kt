@@ -21,11 +21,12 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import io.getstream.chat.android.client.models.Attachment
-import io.getstream.chat.android.client.models.Message
-import io.getstream.chat.android.client.models.User
+import io.getstream.chat.android.client.utils.message.isSystem
 import io.getstream.chat.android.compose.ui.attachments.AttachmentFactory
 import io.getstream.chat.android.compose.ui.theme.StreamTypography
+import io.getstream.chat.android.models.Attachment
+import io.getstream.chat.android.models.Message
+import io.getstream.chat.android.models.User
 
 /**
  * An interface that allows to generate a preview text for the given message.
@@ -60,7 +61,7 @@ public fun interface MessagePreviewFormatter {
                 messageTextStyle = typography.bodyBold,
                 senderNameTextStyle = typography.bodyBold,
                 attachmentTextFontStyle = typography.bodyItalic,
-                attachmentFactories = attachmentFactories
+                attachmentFactories = attachmentFactories,
             )
         }
     }
@@ -101,16 +102,16 @@ private class DefaultMessagePreviewFormatter(
                     appendSenderName(
                         message = message,
                         currentUser = currentUser,
-                        senderNameTextStyle = senderNameTextStyle
+                        senderNameTextStyle = senderNameTextStyle,
                     )
                     appendMessageText(
                         messageText = messageText,
-                        messageTextStyle = messageTextStyle
+                        messageTextStyle = messageTextStyle,
                     )
                     appendAttachmentText(
                         attachments = message.attachments,
                         attachmentFactories = attachmentFactories,
-                        attachmentTextStyle = attachmentTextFontStyle
+                        attachmentTextStyle = attachmentTextFontStyle,
                     )
                 }
             }
@@ -134,10 +135,10 @@ private class DefaultMessagePreviewFormatter(
                 SpanStyle(
                     fontStyle = senderNameTextStyle.fontStyle,
                     fontWeight = senderNameTextStyle.fontWeight,
-                    fontFamily = senderNameTextStyle.fontFamily
+                    fontFamily = senderNameTextStyle.fontFamily,
                 ),
                 start = 0,
-                end = sender.length
+                end = sender.length,
             )
         }
     }
@@ -156,10 +157,10 @@ private class DefaultMessagePreviewFormatter(
             addStyle(
                 SpanStyle(
                     fontStyle = messageTextStyle.fontStyle,
-                    fontFamily = messageTextStyle.fontFamily
+                    fontFamily = messageTextStyle.fontFamily,
                 ),
                 start = startIndex,
-                end = startIndex + messageText.length
+                end = startIndex + messageText.length,
             )
         }
     }
@@ -190,10 +191,10 @@ private class DefaultMessagePreviewFormatter(
                     addStyle(
                         SpanStyle(
                             fontStyle = attachmentTextStyle.fontStyle,
-                            fontFamily = attachmentTextStyle.fontFamily
+                            fontFamily = attachmentTextStyle.fontFamily,
                         ),
                         start = startIndex,
-                        end = startIndex + attachmentText.length
+                        end = startIndex + attachmentText.length,
                     )
                 }
         }

@@ -17,8 +17,8 @@
 package io.getstream.chat.android.offline.repository.domain.user.internal
 
 import androidx.collection.LruCache
-import io.getstream.chat.android.client.models.User
 import io.getstream.chat.android.client.persistance.repository.UserRepository
+import io.getstream.chat.android.models.User
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -129,22 +129,23 @@ internal class DatabaseUserRepository(
             invisible = invisible,
             banned = banned,
             extraData = extraData,
-            mutes = mutes.map { mute -> mute.target.id }
+            mutes = mutes.map { mute -> mute.target.id },
         )
     }
 
     private fun toModel(userEntity: UserEntity): User = with(userEntity) {
-        User(id = this.originalId).also { user ->
-            user.name = name
-            user.image = image
-            user.role = role
-            user.createdAt = createdAt
-            user.updatedAt = updatedAt
-            user.lastActive = lastActive
-            user.invisible = invisible
-            user.extraData = extraData.toMutableMap()
-            user.banned = banned
-        }
+        User(
+            id = this.originalId,
+            name = name,
+            image = image,
+            role = role,
+            createdAt = createdAt,
+            updatedAt = updatedAt,
+            lastActive = lastActive,
+            invisible = invisible,
+            extraData = extraData.toMutableMap(),
+            banned = banned,
+        )
     }
 
     companion object {

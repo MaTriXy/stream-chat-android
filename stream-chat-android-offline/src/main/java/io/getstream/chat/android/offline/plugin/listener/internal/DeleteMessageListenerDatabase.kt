@@ -16,17 +16,17 @@
 
 package io.getstream.chat.android.offline.plugin.listener.internal
 
-import io.getstream.chat.android.client.errors.ChatError
 import io.getstream.chat.android.client.errors.cause.MessageModerationDeletedException
 import io.getstream.chat.android.client.extensions.internal.users
-import io.getstream.chat.android.client.models.Message
-import io.getstream.chat.android.client.models.MessageSyncType
 import io.getstream.chat.android.client.persistance.repository.MessageRepository
 import io.getstream.chat.android.client.persistance.repository.UserRepository
 import io.getstream.chat.android.client.plugin.listeners.DeleteMessageListener
 import io.getstream.chat.android.client.setup.state.ClientState
-import io.getstream.chat.android.client.utils.Result
-import io.getstream.chat.android.client.utils.SyncStatus
+import io.getstream.chat.android.models.Message
+import io.getstream.chat.android.models.MessageSyncType
+import io.getstream.chat.android.models.SyncStatus
+import io.getstream.result.Error
+import io.getstream.result.Result
 import java.util.Date
 
 /**
@@ -35,6 +35,7 @@ import java.util.Date
  */
 internal class DeleteMessageListenerDatabase(
     private val clientState: ClientState,
+    private val currentUserId: String?,
     private val messageRepository: MessageRepository,
     private val userRepository: UserRepository,
 ) : DeleteMessageListener {
@@ -46,21 +47,24 @@ internal class DeleteMessageListenerDatabase(
      */
     override suspend fun onMessageDeletePrecondition(messageId: String): Result<Unit> {
         return messageRepository.selectMessage(messageId)?.let { message ->
-            val isModerationFailed = message.user.id == clientState.user.value?.id &&
+            val isModerationFailed = message.user.id == currentUserId &&
                 message.syncStatus == SyncStatus.FAILED_PERMANENTLY &&
                 message.syncDescription?.type == MessageSyncType.FAILED_MODERATION
 
             if (isModerationFailed) {
                 messageRepository.deleteChannelMessage(message)
-                Result.error(
-                    MessageModerationDeletedException(
-                        "Message with failed moderation has been deleted locally: $messageId"
-                    )
+                Result.Failure(
+                    Error.ThrowableError(
+                        message = "Message with failed moderation has been deleted locally: $messageId",
+                        cause = MessageModerationDeletedException(
+                            "Message with failed moderation has been deleted locally: $messageId",
+                        ),
+                    ),
                 )
             } else {
-                Result.success(Unit)
+                Result.Success(Unit)
             }
-        } ?: Result.error(ChatError(message = "No message found with id: $messageId"))
+        } ?: Result.Failure(Error.GenericError(message = "No message found with id: $messageId"))
     }
 
     /**
@@ -73,7 +77,7 @@ internal class DeleteMessageListenerDatabase(
             val networkAvailable = clientState.isNetworkAvailable
             val messageToBeDeleted = message.copy(
                 deletedAt = Date(),
-                syncStatus = if (!networkAvailable) SyncStatus.SYNC_NEEDED else SyncStatus.IN_PROGRESS
+                syncStatus = if (!networkAvailable) SyncStatus.SYNC_NEEDED else SyncStatus.IN_PROGRESS,
             )
 
             userRepository.insertUsers(messageToBeDeleted.users())
@@ -88,19 +92,22 @@ internal class DeleteMessageListenerDatabase(
      * @param result the result of the API call.
      */
     override suspend fun onMessageDeleteResult(originalMessageId: String, result: Result<Message>) {
-        if (result.isSuccess) {
-            val deletedMessage = result.data()
-            deletedMessage.syncStatus = SyncStatus.COMPLETED
-
-            messageRepository.insertMessage(deletedMessage, true)
-        } else {
-            messageRepository.selectMessage(originalMessageId)?.let { originalMessage ->
-                val failureMessage = originalMessage.copy(
-                    syncStatus = SyncStatus.SYNC_NEEDED,
-                    updatedLocallyAt = Date(),
+        when (result) {
+            is Result.Success -> {
+                messageRepository.insertMessage(
+                    result.value.copy(syncStatus = SyncStatus.COMPLETED),
+                    true,
                 )
+            }
+            is Result.Failure -> {
+                messageRepository.selectMessage(originalMessageId)?.let { originalMessage ->
+                    val failureMessage = originalMessage.copy(
+                        syncStatus = SyncStatus.SYNC_NEEDED,
+                        updatedLocallyAt = Date(),
+                    )
 
-                messageRepository.insertMessage(failureMessage, true)
+                    messageRepository.insertMessage(failureMessage, true)
+                }
             }
         }
     }

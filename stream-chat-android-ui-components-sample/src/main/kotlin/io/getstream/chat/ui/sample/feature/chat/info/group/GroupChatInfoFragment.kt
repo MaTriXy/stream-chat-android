@@ -28,10 +28,10 @@ import androidx.navigation.fragment.navArgs
 import io.getstream.chat.android.client.ChatClient
 import io.getstream.chat.android.client.events.NotificationChannelMutesUpdatedEvent
 import io.getstream.chat.android.client.subscribeFor
-import io.getstream.chat.android.livedata.utils.EventObserver
-import io.getstream.chat.android.ui.message.list.header.viewmodel.MessageListHeaderViewModel
-import io.getstream.chat.android.ui.message.list.header.viewmodel.bindView
-import io.getstream.chat.android.ui.message.list.viewmodel.factory.MessageListViewModelFactory
+import io.getstream.chat.android.state.utils.EventObserver
+import io.getstream.chat.android.ui.viewmodel.messages.MessageListHeaderViewModel
+import io.getstream.chat.android.ui.viewmodel.messages.MessageListViewModelFactory
+import io.getstream.chat.android.ui.viewmodel.messages.bindView
 import io.getstream.chat.ui.sample.R
 import io.getstream.chat.ui.sample.common.navigateSafely
 import io.getstream.chat.ui.sample.common.showToast
@@ -48,7 +48,9 @@ class GroupChatInfoFragment : Fragment() {
 
     private val args: GroupChatInfoFragmentArgs by navArgs()
     private val viewModel: GroupChatInfoViewModel by viewModels { ChatViewModelFactory(args.cid) }
-    private val headerViewModel: MessageListHeaderViewModel by viewModels { MessageListViewModelFactory(args.cid) }
+    private val headerViewModel: MessageListHeaderViewModel by viewModels {
+        MessageListViewModelFactory(requireContext(), args.cid)
+    }
     private val adapter: GroupChatInfoAdapter = GroupChatInfoAdapter()
 
     private var _binding: FragmentGroupChatInfoBinding? = null
@@ -110,7 +112,7 @@ class GroupChatInfoFragment : Fragment() {
                             args.cid,
                             it.channelName,
                             it.member.user,
-                            viewModel.state.value!!.ownCapabilities
+                            viewModel.state.value!!.ownCapabilities,
                         )
                             .show(parentFragmentManager, GroupChatInfoMemberOptionsDialogFragment.TAG)
                     GroupChatInfoViewModel.UiEvent.RedirectToHome -> findNavController().popBackStack(
@@ -118,7 +120,7 @@ class GroupChatInfoFragment : Fragment() {
                         false,
                     )
                 }
-            }
+            },
         )
         viewModel.state.observe(viewLifecycleOwner) { state ->
             val members = if (state.shouldExpandMembers != false) {
@@ -137,7 +139,7 @@ class GroupChatInfoFragment : Fragment() {
                         ChatInfoItem.Option.SharedMedia,
                         ChatInfoItem.Option.SharedFiles,
                         ChatInfoItem.Option.LeaveGroup,
-                    )
+                    ),
             )
         }
         viewModel.errorEvents.observe(
@@ -148,7 +150,7 @@ class GroupChatInfoFragment : Fragment() {
                     is GroupChatInfoViewModel.ErrorEvent.MuteChannelError -> R.string.chat_group_info_error_mute_channel
                     is GroupChatInfoViewModel.ErrorEvent.LeaveChannelError -> R.string.chat_group_info_error_leave_channel
                 }.let(::showToast)
-            }
+            },
         )
     }
 
@@ -157,22 +159,22 @@ class GroupChatInfoFragment : Fragment() {
             viewModel.onAction(
                 when (option) {
                     is ChatInfoItem.Option.Stateful.MuteChannel -> GroupChatInfoViewModel.Action.MuteChannelClicked(
-                        isChecked
+                        isChecked,
                     )
                     else -> throw IllegalStateException("Chat info option $option is not supported!")
-                }
+                },
             )
         }
         adapter.setChatInfoOptionClickListener { option ->
             when (option) {
                 ChatInfoItem.Option.PinnedMessages -> findNavController().navigateSafely(
-                    GroupChatInfoFragmentDirections.actionGroupChatInfoFragmentToPinnedMessageListFragment(args.cid)
+                    GroupChatInfoFragmentDirections.actionGroupChatInfoFragmentToPinnedMessageListFragment(args.cid),
                 )
                 ChatInfoItem.Option.SharedMedia -> findNavController().navigateSafely(
-                    GroupChatInfoFragmentDirections.actionGroupChatInfoFragmentToChatInfoSharedMediaFragment(args.cid)
+                    GroupChatInfoFragmentDirections.actionGroupChatInfoFragmentToChatInfoSharedMediaFragment(args.cid),
                 )
                 ChatInfoItem.Option.SharedFiles -> findNavController().navigateSafely(
-                    GroupChatInfoFragmentDirections.actionGroupChatInfoFragmentToChatInfoSharedFilesFragment(args.cid)
+                    GroupChatInfoFragmentDirections.actionGroupChatInfoFragmentToChatInfoSharedFilesFragment(args.cid),
                 )
                 ChatInfoItem.Option.LeaveGroup -> {
                     val channelName = viewModel.state.value!!.channelName

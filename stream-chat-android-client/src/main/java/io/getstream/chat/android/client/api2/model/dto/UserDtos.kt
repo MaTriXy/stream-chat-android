@@ -26,7 +26,7 @@ import java.util.Date
  */
 @StreamHandsOff(
     reason = "Field names can't be changed because [CustomObjectDtoAdapter] class uses reflections to add/remove " +
-        "content of [extraData] map"
+        "content of [extraData] map",
 )
 @JsonClass(generateAdapter = true)
 internal data class UpstreamUserDto(
@@ -48,7 +48,7 @@ internal data class UpstreamUserDto(
  */
 @StreamHandsOff(
     reason = "Field names can't be changed because [CustomObjectDtoAdapter] class uses reflections to add/remove " +
-        "content of [extraData] map"
+        "content of [extraData] map",
 )
 @JsonClass(generateAdapter = true)
 internal data class DownstreamUserDto(
@@ -61,6 +61,7 @@ internal data class DownstreamUserDto(
     val devices: List<DeviceDto>?,
     val online: Boolean,
     val created_at: Date?,
+    val deactivated_at: Date?,
     val updated_at: Date?,
     val last_active: Date?,
     val total_unread_count: Int = 0,

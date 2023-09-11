@@ -18,18 +18,23 @@ package io.getstream.chat.ui.sample.application
 
 import android.content.Context
 import com.google.firebase.FirebaseApp
+import io.getstream.android.push.firebase.FirebasePushDeviceGenerator
+import io.getstream.android.push.huawei.HuaweiPushDeviceGenerator
+import io.getstream.android.push.xiaomi.XiaomiPushDeviceGenerator
 import io.getstream.chat.android.client.ChatClient
 import io.getstream.chat.android.client.logger.ChatLogLevel
 import io.getstream.chat.android.client.notifications.handler.NotificationConfig
 import io.getstream.chat.android.client.notifications.handler.NotificationHandlerFactory
 import io.getstream.chat.android.markdown.MarkdownTextTransformer
-import io.getstream.chat.android.offline.plugin.configuration.Config
+import io.getstream.chat.android.models.Channel
+import io.getstream.chat.android.models.Message
+import io.getstream.chat.android.models.UploadAttachmentsNetworkType
 import io.getstream.chat.android.offline.plugin.factory.StreamOfflinePluginFactory
-import io.getstream.chat.android.pushprovider.firebase.FirebasePushDeviceGenerator
-import io.getstream.chat.android.pushprovider.huawei.HuaweiPushDeviceGenerator
-import io.getstream.chat.android.pushprovider.xiaomi.XiaomiPushDeviceGenerator
+import io.getstream.chat.android.state.plugin.config.StatePluginConfig
+import io.getstream.chat.android.state.plugin.factory.StreamStatePluginFactory
 import io.getstream.chat.android.ui.ChatUI
 import io.getstream.chat.ui.sample.BuildConfig
+import io.getstream.chat.ui.sample.debugger.CustomChatClientDebugger
 import io.getstream.chat.ui.sample.feature.HostActivity
 
 class ChatInitializer(private val context: Context) {
@@ -40,46 +45,70 @@ class ChatInitializer(private val context: Context) {
         val notificationHandler = NotificationHandlerFactory.createNotificationHandler(
             context = context,
             newMessageIntent = {
-                    messageId: String,
-                    channelType: String,
-                    channelId: String,
+                    message: Message,
+                    channel: Channel,
                 ->
-                HostActivity.createLaunchIntent(context, messageId, channelType, channelId)
-            }
+                HostActivity.createLaunchIntent(
+                    context = context,
+                    messageId = message.id,
+                    parentMessageId = message.parentId,
+                    channelType = channel.type,
+                    channelId = channel.id,
+                )
+            },
         )
         val notificationConfig =
             NotificationConfig(
                 pushDeviceGenerators = listOf(
-                    FirebasePushDeviceGenerator(),
-                    HuaweiPushDeviceGenerator(context, ApplicationConfigurator.HUAWEI_APP_ID),
+                    FirebasePushDeviceGenerator(providerName = "Firebase"),
+                    HuaweiPushDeviceGenerator(
+                        context = context,
+                        appId = ApplicationConfigurator.HUAWEI_APP_ID,
+                        providerName = "huawei",
+                    ),
                     XiaomiPushDeviceGenerator(
-                        context,
-                        ApplicationConfigurator.XIAOMI_APP_ID,
-                        ApplicationConfigurator.XIAOMI_APP_KEY,
+                        context = context,
+                        appId = ApplicationConfigurator.XIAOMI_APP_ID,
+                        appKey = ApplicationConfigurator.XIAOMI_APP_KEY,
+                        providerName = "Xiaomi",
                     ),
                 ),
-                requestPermissionOnAppLaunch = { true }
+                requestPermissionOnAppLaunch = { true },
             )
         val logLevel = if (BuildConfig.DEBUG) ChatLogLevel.ALL else ChatLogLevel.NOTHING
 
-        val offlinePlugin = StreamOfflinePluginFactory(
-            Config(
+        val offlinePlugin = StreamOfflinePluginFactory(context)
+
+        val statePluginFactory = StreamStatePluginFactory(
+            config = StatePluginConfig(
+                backgroundSyncEnabled = true,
                 userPresence = true,
-                persistenceEnabled = true,
-                useSequentialEventHandler = true
             ),
-            context
+            appContext = context,
         )
 
         val client = ChatClient.Builder(apiKey, context)
             .loggerHandler(FirebaseLogger)
             .notifications(notificationConfig, notificationHandler)
             .logLevel(logLevel)
-            .withPlugin(offlinePlugin)
-            .debugRequests(true)
+            .withPlugins(offlinePlugin, statePluginFactory)
+            .uploadAttachmentsNetworkType(UploadAttachmentsNetworkType.NOT_ROAMING)
+            .apply {
+                if (BuildConfig.DEBUG) {
+                    this.debugRequests(true)
+                        .clientDebugger(CustomChatClientDebugger())
+                }
+            }
             .build()
 
         // Using markdown as text transformer
         ChatUI.messageTextTransformer = MarkdownTextTransformer(context)
+
+        // TransformStyle.messageComposerStyleTransformer = StyleTransformer { defaultStyle ->
+        //     defaultStyle.copy(
+        //         audioRecordingHoldToRecordText = "Bla bla bla",
+        //         audioRecordingSlideToCancelText = "Wash to cancel",
+        //     )
+        // }
     }
 }

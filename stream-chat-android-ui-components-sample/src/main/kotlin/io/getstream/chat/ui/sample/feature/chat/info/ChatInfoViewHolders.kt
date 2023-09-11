@@ -20,8 +20,8 @@ import android.view.View
 import androidx.core.view.isInvisible
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.RecyclerView
-import io.getstream.chat.android.client.models.Member
-import io.getstream.chat.android.ui.common.extensions.getLastSeenText
+import io.getstream.chat.android.models.Member
+import io.getstream.chat.android.ui.utils.extensions.getLastSeenText
 import io.getstream.chat.ui.sample.R
 import io.getstream.chat.ui.sample.common.getColorFromRes
 import io.getstream.chat.ui.sample.databinding.ChatInfoGroupMemberItemBinding
@@ -52,10 +52,10 @@ class ChatInfoMemberViewHolder(private val binding: ChatInfoMemberItemBinding) :
     override fun bind(item: ChatInfoItem.MemberItem) {
         with(item.member) {
             if (user.image.isNotEmpty()) {
-                binding.memberAvatar.isInvisible = false
-                binding.memberAvatar.setUserData(user)
+                binding.userAvatarView.isInvisible = false
+                binding.userAvatarView.setUser(user)
             } else {
-                binding.memberAvatar.isInvisible = true
+                binding.userAvatarView.isInvisible = true
             }
             binding.memberUsername.text = user.name
             binding.memberOnlineIndicator.isVisible = user.online
@@ -130,7 +130,7 @@ class ChatInfoGroupMemberViewHolder(
     override fun bind(item: ChatInfoItem.MemberItem) {
         with(item.member) {
             member = this
-            binding.userAvatar.setUserData(user)
+            binding.userAvatarView.setUser(user)
             binding.nameTextView.text = user.name
             binding.onlineTextView.text = user.getLastSeenText(itemView.context)
 

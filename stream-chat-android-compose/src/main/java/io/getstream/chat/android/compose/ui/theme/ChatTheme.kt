@@ -27,21 +27,24 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalContext
 import coil.ImageLoader
-import com.getstream.sdk.chat.utils.DateFormatter
 import io.getstream.chat.android.client.ChatClient
 import io.getstream.chat.android.client.header.VersionPrefixHeader
-import io.getstream.chat.android.common.MessageOptionsUserReactionAlignment
 import io.getstream.chat.android.compose.ui.attachments.AttachmentFactory
 import io.getstream.chat.android.compose.ui.attachments.StreamAttachmentFactories
 import io.getstream.chat.android.compose.ui.attachments.preview.handler.AttachmentPreviewHandler
 import io.getstream.chat.android.compose.ui.messages.attachments.factory.AttachmentsPickerTabFactories
 import io.getstream.chat.android.compose.ui.messages.attachments.factory.AttachmentsPickerTabFactory
-import io.getstream.chat.android.compose.ui.util.ChannelNameFormatter
 import io.getstream.chat.android.compose.ui.util.LocalStreamImageLoader
 import io.getstream.chat.android.compose.ui.util.MessageAlignmentProvider
 import io.getstream.chat.android.compose.ui.util.MessagePreviewFormatter
 import io.getstream.chat.android.compose.ui.util.ReactionIconFactory
 import io.getstream.chat.android.compose.ui.util.StreamCoilImageLoaderFactory
+import io.getstream.chat.android.ui.common.helper.DateFormatter
+import io.getstream.chat.android.ui.common.images.resizing.StreamCdnImageResizing
+import io.getstream.chat.android.ui.common.state.messages.list.MessageOptionsUserReactionAlignment
+import io.getstream.chat.android.ui.common.utils.ChannelNameFormatter
+import io.getstream.sdk.chat.audio.recording.DefaultStreamMediaRecorder
+import io.getstream.sdk.chat.audio.recording.StreamMediaRecorder
 
 /**
  * Local providers for various properties we connect to our components, for styling.
@@ -85,12 +88,41 @@ private val LocalMessageAlignmentProvider = compositionLocalOf<MessageAlignmentP
 private val LocalMessageOptionsUserReactionAlignment = compositionLocalOf<MessageOptionsUserReactionAlignment> {
     error(
         "No LocalMessageOptionsUserReactionAlignment provided! Make sure to wrap all usages of Stream components " +
-            "in a ChatTheme."
+            "in a ChatTheme.",
     )
 }
 
 private val LocalAttachmentsPickerTabFactories = compositionLocalOf<List<AttachmentsPickerTabFactory>> {
     error("No attachments picker tab factories provided! Make sure to wrap all usages of Stream components in a ChatTheme.")
+}
+
+private val LocalVideoThumbnailsEnabled = compositionLocalOf<Boolean> {
+    error(
+        "No videoThumbnailsEnabled Boolean provided! " +
+            "Make sure to wrap all usages of Stream components in a ChatTheme.",
+    )
+}
+private val LocalStreamCdnImageResizing = compositionLocalOf<StreamCdnImageResizing> {
+    error(
+        "No StreamCdnImageResizing provided! " +
+            "Make sure to wrap all usages of Stream components in a ChatTheme.",
+    )
+}
+private val LocalReadCountEnabled = compositionLocalOf<Boolean> {
+    error(
+        "No readCountEnabled Boolean provided! " +
+            "Make sure to wrap all usages of Stream components in a ChatTheme.",
+    )
+}
+private val LocalOwnMessageTheme = compositionLocalOf<MessageTheme> {
+    error("No OwnMessageTheme provided! Make sure to wrap all usages of Stream components in a ChatTheme.")
+}
+private val LocalOtherMessageTheme = compositionLocalOf<MessageTheme> {
+    error("No OtherMessageTheme provided! Make sure to wrap all usages of Stream components in a ChatTheme.")
+}
+
+private val LocalStreamMediaRecorder = compositionLocalOf<StreamMediaRecorder> {
+    error("No StreamMediaRecorder provided! Make sure to wrap all usages of Stream components in a ChatTheme.")
 }
 
 /**
@@ -114,6 +146,13 @@ private val LocalAttachmentsPickerTabFactories = compositionLocalOf<List<Attachm
  * @param messageAlignmentProvider [MessageAlignmentProvider] used to provide message alignment for the given message.
  * @param messageOptionsUserReactionAlignment Alignment of the user reaction inside the message options.
  * @param attachmentsPickerTabFactories Attachments picker tab factories that we provide.
+ * @param videoThumbnailsEnabled Dictates whether video thumbnails will be displayed inside video previews.
+ * @param streamCdnImageResizing Sets the strategy for resizing images hosted on Stream's CDN. Disabled by default,
+ * set [StreamCdnImageResizing.imageResizingEnabled] to true if you wish to enable resizing images. Note that resizing
+ * applies only to images hosted on Stream's CDN which contain the original height (oh) and width (ow) query parameters.
+ * @param ownMessageTheme Theme of the current user messages.
+ * @param otherMessageTheme Theme of the other users messages.
+ * @param streamMediaRecorder Used for recording audio messages.
  * @param content The content shown within the theme wrapper.
  */
 @Composable
@@ -134,12 +173,24 @@ public fun ChatTheme(
     messagePreviewFormatter: MessagePreviewFormatter = MessagePreviewFormatter.defaultFormatter(
         context = LocalContext.current,
         typography = typography,
-        attachmentFactories = attachmentFactories
+        attachmentFactories = attachmentFactories,
     ),
     imageLoaderFactory: StreamCoilImageLoaderFactory = StreamCoilImageLoaderFactory.defaultFactory(),
     messageAlignmentProvider: MessageAlignmentProvider = MessageAlignmentProvider.defaultMessageAlignmentProvider(),
     messageOptionsUserReactionAlignment: MessageOptionsUserReactionAlignment = MessageOptionsUserReactionAlignment.END,
     attachmentsPickerTabFactories: List<AttachmentsPickerTabFactory> = AttachmentsPickerTabFactories.defaultFactories(),
+    videoThumbnailsEnabled: Boolean = true,
+    streamCdnImageResizing: StreamCdnImageResizing = StreamCdnImageResizing.defaultStreamCdnImageResizing(),
+    readCountEnabled: Boolean = true,
+    ownMessageTheme: MessageTheme = MessageTheme.defaultOwnTheme(
+        typography = typography,
+        colors = colors,
+    ),
+    otherMessageTheme: MessageTheme = MessageTheme.defaultOtherTheme(
+        typography = typography,
+        colors = colors,
+    ),
+    streamMediaRecorder: StreamMediaRecorder = DefaultStreamMediaRecorder(LocalContext.current),
     content: @Composable () -> Unit,
 ) {
     LaunchedEffect(Unit) {
@@ -159,10 +210,16 @@ public fun ChatTheme(
         LocalDateFormatter provides dateFormatter,
         LocalChannelNameFormatter provides channelNameFormatter,
         LocalMessagePreviewFormatter provides messagePreviewFormatter,
+        LocalOwnMessageTheme provides ownMessageTheme,
+        LocalOtherMessageTheme provides otherMessageTheme,
         LocalStreamImageLoader provides imageLoaderFactory.imageLoader(LocalContext.current.applicationContext),
         LocalMessageAlignmentProvider provides messageAlignmentProvider,
         LocalMessageOptionsUserReactionAlignment provides messageOptionsUserReactionAlignment,
         LocalAttachmentsPickerTabFactories provides attachmentsPickerTabFactories,
+        LocalVideoThumbnailsEnabled provides videoThumbnailsEnabled,
+        LocalStreamCdnImageResizing provides streamCdnImageResizing,
+        LocalReadCountEnabled provides readCountEnabled,
+        LocalStreamMediaRecorder provides streamMediaRecorder,
     ) {
         content()
     }
@@ -278,11 +335,56 @@ public object ChatTheme {
         get() = LocalMessageOptionsUserReactionAlignment.current
 
     /**
-     *
      * Retrieves the current list of [AttachmentsPickerTabFactory] at the call site's position in the hierarchy.
      */
     public val attachmentsPickerTabFactories: List<AttachmentsPickerTabFactory>
         @Composable
         @ReadOnlyComposable
         get() = LocalAttachmentsPickerTabFactories.current
+
+    /**
+     * Retrieves the value of [Boolean] dictating whether video thumbnails are enabled at the call site's
+     * position in the hierarchy.
+     */
+    public val videoThumbnailsEnabled: Boolean
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalVideoThumbnailsEnabled.current
+
+    /**
+     * Retrieves the value of [StreamCdnImageResizing] at the call site's position in the hierarchy.
+     */
+    public val streamCdnImageResizing: StreamCdnImageResizing
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalStreamCdnImageResizing.current
+
+    public val readCountEnabled: Boolean
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalReadCountEnabled.current
+
+    /**
+     * Retrieves the current own [MessageTheme] at the call site's position in the hierarchy.
+     */
+    public val ownMessageTheme: MessageTheme
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalOwnMessageTheme.current
+
+    /**
+     * Retrieves the current other [MessageTheme] at the call site's position in the hierarchy.
+     */
+    public val otherMessageTheme: MessageTheme
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalOtherMessageTheme.current
+
+    /**
+     * Retrieves the current list of [StreamMediaRecorder] at the call site's position in the hierarchy.
+     */
+    public val streamMediaRecorder: StreamMediaRecorder
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalStreamMediaRecorder.current
 }

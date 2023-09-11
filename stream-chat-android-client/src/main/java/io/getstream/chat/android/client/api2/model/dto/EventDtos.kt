@@ -18,7 +18,7 @@ package io.getstream.chat.android.client.api2.model.dto
 
 import com.squareup.moshi.JsonClass
 import io.getstream.chat.android.client.api2.model.dto.utils.internal.ExactDate
-import io.getstream.chat.android.client.errors.ChatError
+import io.getstream.result.Error
 import java.util.Date
 
 internal sealed class ChatEventDto
@@ -139,7 +139,7 @@ internal data class MessageDeletedEventDto(
     val channel_type: String,
     val channel_id: String,
     val message: DownstreamMessageDto,
-    val hard_delete: Boolean?
+    val hard_delete: Boolean?,
 ) : ChatEventDto()
 
 @JsonClass(generateAdapter = true)
@@ -376,6 +376,7 @@ internal data class ChannelUserBannedEventDto(
     val channel_id: String,
     val user: DownstreamUserDto,
     val expiration: Date?,
+    val shadow: Boolean?,
 ) : ChatEventDto()
 
 @JsonClass(generateAdapter = true)
@@ -481,7 +482,7 @@ internal data class DisconnectedEventDto(
 internal data class ErrorEventDto(
     val type: String,
     val created_at: ExactDate,
-    val error: ChatError,
+    val error: Error,
 ) : ChatEventDto()
 
 @JsonClass(generateAdapter = true)

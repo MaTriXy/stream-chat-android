@@ -56,6 +56,11 @@ android {
             shrinkResources false
             signingConfig signingConfigs.debug
         }
+        benchmark {
+            signingConfig signingConfigs.debug
+            matchingFallbacks = ['release']
+            debuggable false
+        }
         release {
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
@@ -68,7 +73,7 @@ android {
     }
 
     composeOptions {
-        kotlinCompilerExtensionVersion Versions.COMPOSE_COMPILER
+        kotlinCompilerExtensionVersion Versions.ANDROIDX_COMPOSE_COMPILER
     }
 
     lintOptions {
@@ -79,18 +84,19 @@ android {
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
     kotlinOptions {
         freeCompilerArgs += [
-                '-Xopt-in=kotlin.RequiresOptIn',
+                '-opt-in=kotlin.RequiresOptIn',
         ]
     }
 }
 
 dependencies {
     implementation project(':stream-chat-android-compose')
-    implementation project(":stream-chat-android-pushprovider-firebase")
+    implementation project(":stream-chat-android-offline")
 
     implementation Dependencies.androidxCoreKtx
     implementation Dependencies.androidxAppCompat
     implementation Dependencies.materialComponents
+    implementation Dependencies.streamPushFirebase
 
     // Compose
     implementation Dependencies.composeCompiler

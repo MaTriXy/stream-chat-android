@@ -23,10 +23,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import io.getstream.chat.android.client.models.Attachment
 import io.getstream.chat.android.compose.ui.theme.ChatTheme
 import io.getstream.chat.android.compose.ui.util.MimeTypeIconProvider
 import io.getstream.chat.android.compose.ui.util.rememberStreamImagePainter
+import io.getstream.chat.android.models.Attachment
+import io.getstream.chat.android.ui.common.images.resizing.applyStreamCdnImageResizingIfEnabled
+import io.getstream.chat.android.ui.common.utils.extensions.imagePreviewUrl
 
 /**
  * Builds a file attachment quoted message which shows a single file in the attachments list.
@@ -41,7 +43,9 @@ public fun FileAttachmentQuotedContent(
     val isImage = attachment.type == "image"
 
     val painter = if (isImage) {
-        val dataToLoad = attachment.imageUrl ?: attachment.upload
+        val dataToLoad =
+            attachment.imagePreviewUrl?.applyStreamCdnImageResizingIfEnabled(ChatTheme.streamCdnImageResizing)
+                ?: attachment.upload
 
         rememberStreamImagePainter(dataToLoad)
     } else {
@@ -58,6 +62,6 @@ public fun FileAttachmentQuotedContent(
             .size(size),
         painter = painter,
         contentDescription = null,
-        contentScale = if (isImage) ContentScale.Crop else ContentScale.Fit
+        contentScale = if (isImage) ContentScale.Crop else ContentScale.Fit,
     )
 }

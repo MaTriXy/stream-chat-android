@@ -21,8 +21,8 @@ import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.Relation
-import io.getstream.chat.android.client.models.MessageSyncType
-import io.getstream.chat.android.client.utils.SyncStatus
+import io.getstream.chat.android.models.MessageSyncType
+import io.getstream.chat.android.models.SyncStatus
 import io.getstream.chat.android.offline.repository.domain.message.attachment.internal.AttachmentEntity
 import io.getstream.chat.android.offline.repository.domain.message.channelinfo.internal.ChannelInfoEntity
 import io.getstream.chat.android.offline.repository.domain.reaction.internal.ReactionEntity
@@ -46,8 +46,8 @@ internal data class MessageEntity(
         Index(value = ["cid", "createdAt"]),
         Index(value = ["syncStatus"]),
         Index(value = ["syncType"]),
-        Index(value = ["syncStatus", "syncType"])
-    ]
+        Index(value = ["syncStatus", "syncType"]),
+    ],
 )
 internal data class MessageInnerEntity(
     @PrimaryKey
@@ -125,11 +125,6 @@ internal data class MessageInnerEntity(
      * Note: This property is local only, it is not sent to the backend.
      */
     var skipEnrichUrl: Boolean = false,
-)
-
-internal data class MessageSyncDescriptionEntity(
-    val type: MessageSyncType,
-    val content: String,
 )
 
 internal const val MESSAGE_ENTITY_TABLE_NAME = "stream_chat_message"

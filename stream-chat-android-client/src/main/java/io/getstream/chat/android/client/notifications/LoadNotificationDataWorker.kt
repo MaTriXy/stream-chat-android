@@ -32,16 +32,15 @@ import androidx.work.workDataOf
 import io.getstream.chat.android.client.ChatClient
 import io.getstream.chat.android.client.R
 import io.getstream.chat.android.client.api.models.QueryChannelRequest
-import io.getstream.chat.android.client.call.zipWith
-import io.getstream.chat.android.client.utils.stringify
-import io.getstream.logging.StreamLog
+import io.getstream.log.taggedLogger
+import io.getstream.result.call.zipWith
 
 internal class LoadNotificationDataWorker(
     private val context: Context,
     workerParams: WorkerParameters,
 ) : CoroutineWorker(context, workerParams) {
 
-    private val logger = StreamLog.getLogger("Chat:Notifications-Loader")
+    private val logger by taggedLogger("Chat:Notifications-Loader")
 
     override suspend fun doWork(): Result {
         val channelId: String = inputData.getString(DATA_CHANNEL_ID)!!
@@ -53,24 +52,31 @@ internal class LoadNotificationDataWorker(
         return try {
             val client: ChatClient = ChatClient.instance()
             val getMessage = client.getMessage(messageId)
-            val getChannel = client.queryChannel(channelType, channelId, QueryChannelRequest())
+            val getChannel = client.queryChannel(
+                channelType,
+                channelId,
+                QueryChannelRequest().apply {
+                    isNotificationUpdate = true
+                },
+            )
 
             val result = getChannel.zipWith(getMessage).await()
+            when (result) {
+                is io.getstream.result.Result.Success -> {
+                    val (channel, message) = result.value
+                    val messageParentId = message.parentId
 
-            if (result.isSuccess) {
-                val (channel, message) = result.data()
-                val messageParentId = message.parentId
-
-                if (messageParentId != null) {
-                    logger.v { "[doWork] fetching thread parent message." }
-                    client.getMessage(messageParentId).await()
+                    if (messageParentId != null) {
+                        logger.v { "[doWork] fetching thread parent message." }
+                        client.getMessage(messageParentId).await()
+                    }
+                    ChatClient.displayNotification(channel = channel, message = message)
+                    Result.success()
                 }
-
-                ChatClient.displayNotification(channel = channel, message = message)
-                Result.success()
-            } else {
-                logger.e { "Error while loading notification data: ${result.error().stringify()}" }
-                Result.failure()
+                is io.getstream.result.Result.Failure -> {
+                    logger.e { "Error while loading notification data: ${result.value}" }
+                    Result.failure()
+                }
             }
         } catch (exception: IllegalStateException) {
             logger.e { "Error while loading notification data: ${exception.message}" }
@@ -135,8 +141,8 @@ internal class LoadNotificationDataWorker(
                     workDataOf(
                         DATA_CHANNEL_ID to channelId,
                         DATA_CHANNEL_TYPE to channelType,
-                        DATA_MESSAGE_ID to messageId
-                    )
+                        DATA_MESSAGE_ID to messageId,
+                    ),
                 )
                 .build()
 

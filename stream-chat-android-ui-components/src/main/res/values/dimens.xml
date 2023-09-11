@@ -41,6 +41,7 @@
     <dimen name="stream_ui_avatar_text_size_large">24sp</dimen>
     <dimen name="stream_ui_avatar_text_size_extra_large">28sp</dimen>
     <dimen name="stream_ui_avatar_initials">14sp</dimen>
+    <dimen name="stream_ui_group_avatar_initials">10sp</dimen>
     <dimen name="stream_ui_avatar_border_width">3dp</dimen>
 
     <!--Suggestions-->
@@ -67,9 +68,29 @@
 
     <!-- Search Input -->
     <dimen name="stream_ui_search_input_height">36dp</dimen>
+    <dimen name="stream_ui_search_input_background_outline_width">1dp</dimen>
+    <dimen name="stream_ui_search_input_text_margin_start">16dp</dimen>
+    <dimen name="stream_ui_search_input_text_margin_end">8dp</dimen>
+    <dimen name="stream_ui_search_input_icon_search_width">24dp</dimen>
+    <dimen name="stream_ui_search_input_icon_search_height">24dp</dimen>
+    <dimen name="stream_ui_search_input_icon_search_margin_start">8dp</dimen>
+    <dimen name="stream_ui_search_input_icon_clear_width">24dp</dimen>
+    <dimen name="stream_ui_search_input_icon_clear_height">24dp</dimen>
+    <dimen name="stream_ui_search_input_icon_clear_margin_end">8dp</dimen>
+
+    <!--Channel List Fragment -->
+    <dimen name="stream_ui_channel_list_search_margin_top">8dp</dimen>
+    <dimen name="stream_ui_channel_list_search_margin_start">8dp</dimen>
+    <dimen name="stream_ui_channel_list_search_margin_end">8dp</dimen>
+    <dimen name="stream_ui_channel_list_search_margin_bottom">8dp</dimen>
 
     <!--Channel List Items-->
     <dimen name="stream_ui_channel_list_item_height">64dp</dimen>
+    <dimen name="stream_ui_channel_list_item_margin_start">8dp</dimen>
+    <dimen name="stream_ui_channel_list_item_margin_end">8dp</dimen>
+    <dimen name="stream_ui_channel_list_item_title_margin_start">8dp</dimen>
+    <dimen name="stream_ui_channel_list_item_vertical_spacer_height">0dp</dimen>
+    <item type="dimen" format="float" name="stream_ui_channel_list_item_vertical_spacer_position">0.5</item>
     <dimen name="stream_ui_channel_list_item_option_icon_width">50dp</dimen>
     <dimen name="stream_ui_channel_item_progress_bar_size">16dp</dimen>
     <dimen name="stream_ui_channel_list_item_loading_height">90dp</dimen>
@@ -140,9 +161,6 @@
     <dimen name="stream_ui_scroll_button_unread_badge_padding_horizontal">5dp</dimen>
     <dimen name="stream_ui_scroll_button_unread_badge_text_size">11sp</dimen>
 
-    <!--MessageInputFieldView-->
-    <dimen name="stream_ui_message_input_command_icon_size">16dp</dimen>
-    <dimen name="stream_ui_message_input_button_size">32dp</dimen>
     <dimen name="stream_ui_attachment_button_size">32dp</dimen>
     <dimen name="stream_ui_command_button_size">32dp</dimen>
 
@@ -153,9 +171,6 @@
     <dimen name="stream_ui_channel_item_title">15sp</dimen>
     <dimen name="stream_ui_channel_item_message">13sp</dimen>
     <dimen name="stream_ui_channel_item_message_date">13sp</dimen>
-
-    <dimen name="stream_ui_message_input_padding_end">16dp</dimen>
-    <dimen name="stream_ui_message_input_padding_start">16dp</dimen>
 
     <!-- Message ViewHolders -->
     <dimen name="stream_ui_message_viewholder_avatar_missing_margin">40dp</dimen>
@@ -181,11 +196,30 @@
     <dimen name="stream_ui_message_composer_attachment_height">72dp</dimen>
     <dimen name="stream_ui_message_composer_image_attachment_width">72dp</dimen>
     <dimen name="stream_ui_message_composer_file_attachment_width">200dp</dimen>
+    <dimen name="stream_ui_message_composer_audio_attachment_width">230dp</dimen>
     <dimen name="stream_ui_message_composer_attachment_corner_radius">12dp</dimen>
     <dimen name="stream_ui_message_composer_header_content_height">48dp</dimen>
+    <dimen name="stream_ui_message_composer_center_content_height">56dp</dimen>
     <dimen name="stream_ui_message_composer_leading_content_horizontal_padding">4dp</dimen>
     <dimen name="stream_ui_message_composer_leading_content_vertical_padding">12dp</dimen>
     <dimen name="stream_ui_message_composer_trailing_content_horizontal_padding">4dp</dimen>
     <dimen name="stream_ui_message_composer_trailing_content_vertical_padding">12dp</dimen>
+    <dimen name="stream_ui_message_composer_trailing_content_button_send_message_padding">4dp</dimen>
+    <dimen name="stream_ui_message_composer_trailing_content_button_send_message_width">32dp</dimen>
+    <dimen name="stream_ui_message_composer_trailing_content_button_send_message_height">32dp</dimen>
+    <dimen name="stream_ui_message_composer_trailing_content_button_record_audio_padding">4dp</dimen>
+    <dimen name="stream_ui_message_composer_trailing_content_button_record_audio_width">32dp</dimen>
+    <dimen name="stream_ui_message_composer_trailing_content_button_record_audio_height">32dp</dimen>
+
+    <dimen name="stream_ui_message_composer_overlapping_content_horizontal_padding">4dp</dimen>
+    <dimen name="stream_ui_message_composer_overlapping_content_vertical_padding">12dp</dimen>
+    <dimen name="stream_ui_message_composer_overlapping_content_floating_mic_width">64dp</dimen>
+    <dimen name="stream_ui_message_composer_overlapping_content_floating_mic_height">64dp</dimen>
+    <dimen name="stream_ui_message_composer_overlapping_content_floating_lock_width">52dp</dimen>
+    <dimen name="stream_ui_message_composer_overlapping_content_floating_lock_height">92dp</dimen>
+    <dimen name="stream_ui_message_composer_overlapping_content_floating_locked_width">52dp</dimen>
+    <dimen name="stream_ui_message_composer_overlapping_content_floating_locked_height">52dp</dimen>
+    <dimen name="stream_ui_message_composer_overlapping_content_floating_hold_height">48dp</dimen>
+    <dimen name="stream_ui_message_composer_overlapping_content_floating_hold_padding">8dp</dimen>
 
 </resources>

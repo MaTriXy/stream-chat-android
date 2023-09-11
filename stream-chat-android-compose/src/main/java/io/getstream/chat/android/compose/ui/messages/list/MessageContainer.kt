@@ -31,48 +31,56 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import io.getstream.chat.android.client.models.Message
 import io.getstream.chat.android.compose.R
-import io.getstream.chat.android.compose.state.imagepreview.ImagePreviewResult
-import io.getstream.chat.android.compose.state.messages.list.DateSeparatorState
-import io.getstream.chat.android.compose.state.messages.list.GiphyAction
-import io.getstream.chat.android.compose.state.messages.list.MessageItemState
-import io.getstream.chat.android.compose.state.messages.list.MessageListItemState
-import io.getstream.chat.android.compose.state.messages.list.SystemMessageState
-import io.getstream.chat.android.compose.state.messages.list.ThreadSeparatorState
+import io.getstream.chat.android.compose.state.mediagallerypreview.MediaGalleryPreviewResult
 import io.getstream.chat.android.compose.ui.theme.ChatTheme
+import io.getstream.chat.android.compose.viewmodel.messages.MessagesViewModelFactory
+import io.getstream.chat.android.models.Message
+import io.getstream.chat.android.ui.common.feature.messages.list.MessageListController
+import io.getstream.chat.android.ui.common.state.messages.list.DateSeparatorItemState
+import io.getstream.chat.android.ui.common.state.messages.list.EmptyThreadPlaceholderItemState
+import io.getstream.chat.android.ui.common.state.messages.list.GiphyAction
+import io.getstream.chat.android.ui.common.state.messages.list.MessageItemState
+import io.getstream.chat.android.ui.common.state.messages.list.MessageListItemState
+import io.getstream.chat.android.ui.common.state.messages.list.SystemMessageItemState
+import io.getstream.chat.android.ui.common.state.messages.list.ThreadDateSeparatorItemState
+import io.getstream.chat.android.ui.common.state.messages.list.TypingItemState
 
 /**
  * Represents the message item container that allows us to customize each type of item in the MessageList.
  *
- * @param messageListItem The state of the message list item.
+ * @param messageListItemState The state of the message list item.
  * @param onLongItemClick Handler when the user long taps on an item.
  * @param onReactionsClick Handler when the user taps on message reactions.
  * @param onThreadClick Handler when the user taps on a thread within a message item.
  * @param onGiphyActionClick Handler when the user taps on Giphy message actions.
  * @param onQuotedMessageClick Handler for quoted message click action.
- * @param onImagePreviewResult Handler when the user receives a result from the Image Preview.
+ * @param onMediaGalleryPreviewResult Handler when the user receives a result from the Media Gallery Preview.
  * @param dateSeparatorContent Composable that represents date separators.
  * @param threadSeparatorContent Composable that represents thread separators.
  * @param systemMessageContent Composable that represents system messages.
  * @param messageItemContent Composable that represents regular messages.
+ * @param typingIndicatorContent Composable that represents a typing indicator.
+ * @param emptyThreadPlaceholderItemContent Composable that represents placeholders inside of an empty thread.
+ * This content is disabled by default and can be enabled via [MessagesViewModelFactory.showDateSeparatorInEmptyThread]
+ * or [MessageListController.showDateSeparatorInEmptyThread].
  */
 @Composable
 public fun MessageContainer(
-    messageListItem: MessageListItemState,
+    messageListItemState: MessageListItemState,
     onLongItemClick: (Message) -> Unit = {},
     onReactionsClick: (Message) -> Unit = {},
     onThreadClick: (Message) -> Unit = {},
     onGiphyActionClick: (GiphyAction) -> Unit = {},
     onQuotedMessageClick: (Message) -> Unit = {},
-    onImagePreviewResult: (ImagePreviewResult?) -> Unit = {},
-    dateSeparatorContent: @Composable (DateSeparatorState) -> Unit = {
+    onMediaGalleryPreviewResult: (MediaGalleryPreviewResult?) -> Unit = {},
+    dateSeparatorContent: @Composable (DateSeparatorItemState) -> Unit = {
         DefaultMessageDateSeparatorContent(dateSeparator = it)
     },
-    threadSeparatorContent: @Composable (ThreadSeparatorState) -> Unit = {
+    threadSeparatorContent: @Composable (ThreadDateSeparatorItemState) -> Unit = {
         DefaultMessageThreadSeparatorContent(threadSeparator = it)
     },
-    systemMessageContent: @Composable (SystemMessageState) -> Unit = {
+    systemMessageContent: @Composable (SystemMessageItemState) -> Unit = {
         DefaultSystemMessageContent(systemMessageState = it)
     },
     messageItemContent: @Composable (MessageItemState) -> Unit = {
@@ -82,16 +90,20 @@ public fun MessageContainer(
             onReactionsClick = onReactionsClick,
             onThreadClick = onThreadClick,
             onGiphyActionClick = onGiphyActionClick,
-            onImagePreviewResult = onImagePreviewResult,
+            onMediaGalleryPreviewResult = onMediaGalleryPreviewResult,
             onQuotedMessageClick = onQuotedMessageClick,
         )
     },
+    typingIndicatorContent: @Composable (TypingItemState) -> Unit = { },
+    emptyThreadPlaceholderItemContent: @Composable (EmptyThreadPlaceholderItemState) -> Unit = { },
 ) {
-    when (messageListItem) {
-        is DateSeparatorState -> dateSeparatorContent(messageListItem)
-        is ThreadSeparatorState -> threadSeparatorContent(messageListItem)
-        is SystemMessageState -> systemMessageContent(messageListItem)
-        is MessageItemState -> messageItemContent(messageListItem)
+    when (messageListItemState) {
+        is DateSeparatorItemState -> dateSeparatorContent(messageListItemState)
+        is ThreadDateSeparatorItemState -> threadSeparatorContent(messageListItemState)
+        is SystemMessageItemState -> systemMessageContent(messageListItemState)
+        is MessageItemState -> messageItemContent(messageListItemState)
+        is TypingItemState -> typingIndicatorContent(messageListItemState)
+        is EmptyThreadPlaceholderItemState -> emptyThreadPlaceholderItemContent(messageListItemState)
     }
 }
 
@@ -101,13 +113,13 @@ public fun MessageContainer(
  * @param dateSeparator The data used to show the separator text.
  */
 @Composable
-internal fun DefaultMessageDateSeparatorContent(dateSeparator: DateSeparatorState) {
+internal fun DefaultMessageDateSeparatorContent(dateSeparator: DateSeparatorItemState) {
     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
         Surface(
             modifier = Modifier
                 .padding(vertical = 8.dp),
             color = ChatTheme.colors.overlayDark,
-            shape = RoundedCornerShape(16.dp)
+            shape = RoundedCornerShape(16.dp),
         ) {
             Text(
                 modifier = Modifier.padding(vertical = 2.dp, horizontal = 16.dp),
@@ -115,10 +127,10 @@ internal fun DefaultMessageDateSeparatorContent(dateSeparator: DateSeparatorStat
                     dateSeparator.date.time,
                     System.currentTimeMillis(),
                     DateUtils.DAY_IN_MILLIS,
-                    DateUtils.FORMAT_ABBREV_RELATIVE
+                    DateUtils.FORMAT_ABBREV_RELATIVE,
                 ).toString(),
                 color = ChatTheme.colors.barsBackground,
-                style = ChatTheme.typography.body
+                style = ChatTheme.typography.body,
             )
         }
     }
@@ -131,12 +143,12 @@ internal fun DefaultMessageDateSeparatorContent(dateSeparator: DateSeparatorStat
  * @param threadSeparator The data used to show the separator text.
  */
 @Composable
-internal fun DefaultMessageThreadSeparatorContent(threadSeparator: ThreadSeparatorState) {
+internal fun DefaultMessageThreadSeparatorContent(threadSeparator: ThreadDateSeparatorItemState) {
     val backgroundGradient = Brush.verticalGradient(
         listOf(
             ChatTheme.colors.threadSeparatorGradientStart,
-            ChatTheme.colors.threadSeparatorGradientEnd
-        )
+            ChatTheme.colors.threadSeparatorGradientEnd,
+        ),
     )
     val replyCount = threadSeparator.replyCount
 
@@ -145,17 +157,17 @@ internal fun DefaultMessageThreadSeparatorContent(threadSeparator: ThreadSeparat
             .fillMaxWidth()
             .padding(vertical = ChatTheme.dimens.threadSeparatorVerticalPadding)
             .background(brush = backgroundGradient),
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.Center,
     ) {
         Text(
             modifier = Modifier.padding(vertical = ChatTheme.dimens.threadSeparatorTextVerticalPadding),
             text = LocalContext.current.resources.getQuantityString(
                 R.plurals.stream_compose_message_list_thread_separator,
                 replyCount,
-                replyCount
+                replyCount,
             ),
             color = ChatTheme.colors.textLowEmphasis,
-            style = ChatTheme.typography.body
+            style = ChatTheme.typography.body,
         )
     }
 }
@@ -168,7 +180,7 @@ internal fun DefaultMessageThreadSeparatorContent(threadSeparator: ThreadSeparat
  * @param systemMessageState The system message item to show.
  */
 @Composable
-internal fun DefaultSystemMessageContent(systemMessageState: SystemMessageState) {
+internal fun DefaultSystemMessageContent(systemMessageState: SystemMessageItemState) {
     Text(
         modifier = Modifier
             .fillMaxWidth()
@@ -176,7 +188,7 @@ internal fun DefaultSystemMessageContent(systemMessageState: SystemMessageState)
         text = systemMessageState.message.text,
         color = ChatTheme.colors.textLowEmphasis,
         style = ChatTheme.typography.footnoteBold,
-        textAlign = TextAlign.Center
+        textAlign = TextAlign.Center,
     )
 }
 
@@ -189,7 +201,7 @@ internal fun DefaultSystemMessageContent(systemMessageState: SystemMessageState)
  * @param onThreadClick Handler when the user clicks on the message thread.
  * @param onGiphyActionClick Handler when the user selects a Giphy action.
  * @param onQuotedMessageClick Handler for quoted message click action.
- * @param onImagePreviewResult Handler when the user receives an image preview result.
+ * @param onMediaGalleryPreviewResult Handler when the user receives a result from the Media Gallery Preview.
  */
 @Composable
 internal fun DefaultMessageItem(
@@ -199,7 +211,7 @@ internal fun DefaultMessageItem(
     onThreadClick: (Message) -> Unit,
     onGiphyActionClick: (GiphyAction) -> Unit,
     onQuotedMessageClick: (Message) -> Unit,
-    onImagePreviewResult: (ImagePreviewResult?) -> Unit,
+    onMediaGalleryPreviewResult: (MediaGalleryPreviewResult?) -> Unit = {},
 ) {
     MessageItem(
         messageItem = messageItem,
@@ -208,6 +220,6 @@ internal fun DefaultMessageItem(
         onThreadClick = onThreadClick,
         onGiphyActionClick = onGiphyActionClick,
         onQuotedMessageClick = onQuotedMessageClick,
-        onImagePreviewResult = onImagePreviewResult,
+        onMediaGalleryPreviewResult = onMediaGalleryPreviewResult,
     )
 }

@@ -48,7 +48,6 @@ import io.getstream.chat.android.client.api2.endpoint.MessageApi
 import io.getstream.chat.android.client.api2.endpoint.ModerationApi
 import io.getstream.chat.android.client.api2.endpoint.UserApi
 import io.getstream.chat.android.client.api2.endpoint.VideoCallApi
-import io.getstream.chat.android.client.clientstate.SocketStateService
 import io.getstream.chat.android.client.clientstate.UserStateService
 import io.getstream.chat.android.client.logger.ChatLogLevel
 import io.getstream.chat.android.client.network.NetworkStateProvider
@@ -60,23 +59,26 @@ import io.getstream.chat.android.client.notifications.handler.NotificationHandle
 import io.getstream.chat.android.client.parser.ChatParser
 import io.getstream.chat.android.client.parser2.MoshiChatParser
 import io.getstream.chat.android.client.plugins.requests.ApiRequestsAnalyser
+import io.getstream.chat.android.client.scope.ClientScope
 import io.getstream.chat.android.client.scope.UserScope
+import io.getstream.chat.android.client.setup.state.internal.MutableClientState
 import io.getstream.chat.android.client.socket.ChatSocket
 import io.getstream.chat.android.client.socket.SocketFactory
 import io.getstream.chat.android.client.token.TokenManager
 import io.getstream.chat.android.client.token.TokenManagerImpl
 import io.getstream.chat.android.client.uploader.FileUploader
 import io.getstream.chat.android.client.uploader.StreamFileUploader
-import io.getstream.logging.StreamLog
+import io.getstream.chat.android.client.user.CurrentUserFetcher
+import io.getstream.log.StreamLog
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import java.util.concurrent.TimeUnit
-import io.getstream.chat.android.client.socket.experimental.ChatSocket as ChatSocketExperimental
 
 @Suppress("TooManyFunctions")
 internal open class BaseChatModule(
     private val appContext: Context,
-    private val scope: UserScope,
+    private val clientScope: ClientScope,
+    private val userScope: UserScope,
     private val config: ChatClientConfig,
     private val notificationsHandler: NotificationHandler,
     private val notificationConfig: NotificationConfig,
@@ -88,33 +90,36 @@ internal open class BaseChatModule(
 ) {
 
     private val moshiParser: ChatParser by lazy { MoshiChatParser() }
+    private val socketFactory: SocketFactory by lazy { SocketFactory(moshiParser, tokenManager) }
 
     private val defaultNotifications by lazy { buildNotification(notificationsHandler, notificationConfig) }
     private val defaultApi by lazy { buildApi(config) }
-    private val defaultSocket by lazy {
-        buildSocket(config, moshiParser)
-    }
-    private val chatSocketExperimental: ChatSocketExperimental by lazy {
-        buildExperimentalChatSocket(config, moshiParser)
-    }
+    internal val chatSocket: ChatSocket by lazy { buildChatSocket(config) }
     private val defaultFileUploader by lazy {
         StreamFileUploader(buildRetrofitCdnApi())
     }
 
-    val lifecycleObserver: StreamLifecycleObserver by lazy { StreamLifecycleObserver(lifecycle) }
+    val lifecycleObserver: StreamLifecycleObserver by lazy { StreamLifecycleObserver(userScope, lifecycle) }
     val networkStateProvider: NetworkStateProvider by lazy {
-        NetworkStateProvider(appContext.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager)
+        NetworkStateProvider(userScope, appContext.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager)
     }
-    val socketStateService: SocketStateService = SocketStateService()
     val userStateService: UserStateService = UserStateService()
+
+    val mutableClientState by lazy {
+        MutableClientState(networkStateProvider)
+    }
+
+    val currentUserFetcher by lazy {
+        CurrentUserFetcher(
+            networkStateProvider = networkStateProvider,
+            socketFactory = socketFactory,
+            config = config,
+        )
+    }
 
     //region Modules
 
     fun api(): ChatApi = defaultApi
-
-    fun socket(): ChatSocket = defaultSocket
-
-    fun experimentalSocket() = chatSocketExperimental
 
     fun notifications(): ChatNotifications = defaultNotifications
 
@@ -142,7 +147,7 @@ internal open class BaseChatModule(
             .baseUrl(endpoint)
             .client(okHttpClient)
             .also(parser::configRetrofit)
-            .addCallAdapterFactory(RetrofitCallAdapterFactory.create(parser, scope))
+            .addCallAdapterFactory(RetrofitCallAdapterFactory.create(parser, userScope))
             .build()
     }
 
@@ -179,8 +184,8 @@ internal open class BaseChatModule(
                 TokenAuthInterceptor(
                     tokenManager,
                     parser,
-                    getAnonymousProvider(config, isAnonymousApi)
-                )
+                    getAnonymousProvider(config, isAnonymousApi),
+                ),
             )
             .apply {
                 if (config.loggerConfig.level != ChatLogLevel.NOTHING) {
@@ -192,7 +197,7 @@ internal open class BaseChatModule(
                                     StreamLog.i("Chat:CURL") { message }
                                 }
                             },
-                        )
+                        ),
                     )
                 }
             }
@@ -206,28 +211,14 @@ internal open class BaseChatModule(
         return { isAnonymousApi || config.isAnonymous }
     }
 
-    private fun buildSocket(
+    private fun buildChatSocket(
         chatConfig: ChatClientConfig,
-        parser: ChatParser,
     ) = ChatSocket(
         chatConfig.apiKey,
         chatConfig.wssUrl,
         tokenManager,
-        SocketFactory(parser, tokenManager),
-        networkStateProvider,
-        parser,
-        scope,
-    )
-
-    private fun buildExperimentalChatSocket(
-        chatConfig: ChatClientConfig,
-        parser: ChatParser,
-    ) = ChatSocketExperimental.create(
-        chatConfig.apiKey,
-        chatConfig.wssUrl,
-        tokenManager,
-        SocketFactory(parser, tokenManager),
-        scope,
+        socketFactory,
+        userScope,
         lifecycleObserver,
         networkStateProvider,
     )
@@ -245,14 +236,14 @@ internal open class BaseChatModule(
         buildRetrofitApi<ConfigApi>(),
         buildRetrofitApi<VideoCallApi>(),
         buildRetrofitApi<FileDownloadApi>(),
-        scope,
-        scope
+        userScope,
+        userScope,
     ).let { originalApi ->
-        DistinctChatApiEnabler(DistinctChatApi(scope, originalApi)) {
+        DistinctChatApiEnabler(DistinctChatApi(userScope, originalApi)) {
             chatConfig.distinctApiCalls
         }
     }.let { originalApi ->
-        ExtraDataValidator(scope, originalApi)
+        ExtraDataValidator(userScope, originalApi)
     }
 
     private inline fun <reified T> buildRetrofitApi(): T {
@@ -273,7 +264,7 @@ internal open class BaseChatModule(
 
             if (anon && auth) {
                 throw IllegalStateException(
-                    "Api class must be annotated with either @AnonymousApi or @AuthenticatedApi, and not both"
+                    "Api class must be annotated with either @AnonymousApi or @AuthenticatedApi, and not both",
                 )
             }
 

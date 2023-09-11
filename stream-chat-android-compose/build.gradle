@@ -37,7 +37,7 @@ android {
     }
 
     composeOptions {
-        kotlinCompilerExtensionVersion Versions.COMPOSE_COMPILER
+        kotlinCompilerExtensionVersion Versions.ANDROIDX_COMPOSE_COMPILER
     }
 }
 
@@ -46,9 +46,9 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
         freeCompilerArgs += [
                 '-progressive',
                 '-Xexplicit-api=strict',
-                '-Xopt-in=io.getstream.chat.android.core.internal.InternalStreamChatApi',
-                '-Xopt-in=io.getstream.chat.android.core.ExperimentalStreamChatApi',
-                '-Xopt-in=kotlin.RequiresOptIn',
+                '-opt-in=io.getstream.chat.android.core.internal.InternalStreamChatApi',
+                '-opt-in=io.getstream.chat.android.core.ExperimentalStreamChatApi',
+                '-opt-in=kotlin.RequiresOptIn',
         ]
     }
 }
@@ -58,6 +58,7 @@ dependencies {
     implementation project(":stream-chat-android-ui-utils")
 
     implementation Dependencies.androidxAppCompat
+    implementation Dependencies.streamLog
 
     // Compose
     implementation Dependencies.composeCompiler
@@ -79,6 +80,7 @@ dependencies {
 
     // Tests
     testImplementation project(':stream-chat-android-test')
+    testImplementation testFixtures(project(":stream-chat-android-core"))
     testImplementation Dependencies.junitJupiterApi
     testImplementation Dependencies.junitJupiterParams
     testRuntimeOnly Dependencies.junitJupiterEngine

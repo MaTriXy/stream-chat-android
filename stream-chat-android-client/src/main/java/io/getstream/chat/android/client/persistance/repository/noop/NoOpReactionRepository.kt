@@ -16,9 +16,9 @@
 
 package io.getstream.chat.android.client.persistance.repository.noop
 
-import io.getstream.chat.android.client.models.Reaction
 import io.getstream.chat.android.client.persistance.repository.ReactionRepository
-import io.getstream.chat.android.client.utils.SyncStatus
+import io.getstream.chat.android.models.Reaction
+import io.getstream.chat.android.models.SyncStatus
 import java.util.Date
 
 /**
@@ -35,13 +35,13 @@ internal object NoOpReactionRepository : ReactionRepository {
     override suspend fun updateReactionsForMessageByDeletedDate(
         userId: String,
         messageId: String,
-        deletedAt: Date
+        deletedAt: Date,
     ) { /* No-Op */ }
 
     override suspend fun selectUserReactionToMessage(
         reactionType: String,
         messageId: String,
-        userId: String
+        userId: String,
     ): Reaction? = null
 
     override suspend fun selectUserReactionsToMessage(

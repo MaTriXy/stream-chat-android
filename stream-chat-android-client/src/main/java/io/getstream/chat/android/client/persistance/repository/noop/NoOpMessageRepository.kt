@@ -16,10 +16,10 @@
 
 package io.getstream.chat.android.client.persistance.repository.noop
 
-import io.getstream.chat.android.client.models.Message
 import io.getstream.chat.android.client.persistance.repository.MessageRepository
 import io.getstream.chat.android.client.query.pagination.AnyChannelPaginationRequest
-import io.getstream.chat.android.client.utils.SyncStatus
+import io.getstream.chat.android.models.Message
+import io.getstream.chat.android.models.SyncStatus
 import java.util.Date
 
 /**
@@ -30,6 +30,7 @@ import java.util.Date
 internal object NoOpMessageRepository : MessageRepository {
     override suspend fun selectMessages(messageIds: List<String>, forceCache: Boolean): List<Message> = emptyList()
     override suspend fun selectMessage(messageId: String): Message? = null
+    override suspend fun selectRepliedMessage(messageId: String): Message? = null
     override suspend fun insertMessages(messages: List<Message>, cache: Boolean) { /* No-Op */ }
     override suspend fun insertMessage(message: Message, cache: Boolean) { /* No-Op */ }
     override suspend fun deleteChannelMessagesBefore(cid: String, hideMessagesBefore: Date) { /* No-Op */ }
